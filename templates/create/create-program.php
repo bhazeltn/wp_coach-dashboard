@@ -1,36 +1,28 @@
 <?php
-/* Plugin-based Create Program Template */
+/**
+ * Template for creating a new Program using ACF form block
+ */
+
+acf_form_head();
 get_header();
 
-if (!is_user_logged_in()) {
-    echo '<p>You must be logged in to create a program.</p>';
-    get_footer();
-    exit;
-}
+$field_group_key = 'group_682426973af85'; // ✅ Program Details
 
-// Set up ACF form configuration
-acf_form_head();
-?>
+echo '<div class="wrap coach-dashboard create-program">';
+echo '<h1>Create New Program</h1>';
+echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">Cancel</a></p>';
 
-<div class="wrap">
-    <h1>Create New Program</h1>
+acf_form([
+    'post_id'         => 'new_post',
+    'new_post'        => [
+        'post_type'   => 'program',
+        'post_status' => 'publish',
+    ],
+    'field_groups'    => [$field_group_key],
+    'submit_value'    => 'Create Program',
+    'uploader'        => 'wp',
+]);
 
-    <?php
-    // Create a blank post in memory, ACF will populate it
-    $new_post = array(
-        'post_id' => 'new_post',
-        'post_title' => true,
-        'post_content' => false,
-        'new_post' => array(
-            'post_type' => 'program',
-            'post_status' => 'publish'
-        ),
-        'submit_value' => 'Create Program',
-        'return' => home_url('/program') // redirect after save
-    );
+echo '</div>';
 
-    acf_form($new_post);
-    ?>
-</div>
-
-<?php get_footer(); ?>
+get_footer();

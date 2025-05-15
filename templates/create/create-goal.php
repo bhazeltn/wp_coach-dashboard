@@ -1,30 +1,26 @@
 <?php
 /**
- * Template for creating a new Goal post using ACF form block
+ * Template for creating a new Skater post using ACF form block
  */
 
 acf_form_head();
 get_header();
 
-$skater_id = isset($_GET['skater_id']) ? intval($_GET['skater_id']) : null;
+$field_group_key = 'group_6819871fd44c9'; // ✅ Skater Profile
 
-$field_group_key = 'group_681c4115a026f'; // Goal field group key
-
-// Wrapper
-echo '<div class="coach-dashboard create-goal">';
-echo '<h1>Create New Goal</h1>';
+echo '<div class="wrap coach-dashboard create-skater">';
+echo '<h1>Create New Skater</h1>';
+echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">Cancel</a></p>';
 
 acf_form([
-    'post_id' => 'new_post',
-    'new_post' => [
-        'post_type'   => 'goal',
+    'post_id'         => 'new_post',
+    'new_post'        => [
+        'post_type'   => 'skater',
         'post_status' => 'publish',
     ],
-    'field_groups' => [$field_group_key],
-    'submit_value' => 'Create Goal',
-    'html_before_fields' => $skater_id
-        ? '<input type="hidden" name="acf[field_linked_skater]" value="' . esc_attr($skater_id) . '">'
-        : '',
+    'field_groups'    => [$field_group_key],
+    'submit_value'    => 'Create Skater',
+    'uploader'        => 'wp',
 ]);
 
 echo '</div>';
