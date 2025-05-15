@@ -1,19 +1,31 @@
 <?php
 /**
- * Template for displaying a single Yearly Plan
+ * Template for displaying a single Yearly Training Plan
  */
 
 get_header();
 
-echo '<div class="coach-dashboard yearly-plan">';
-echo '<h1>' . esc_html(get_the_title()) . '</h1>';
+$plan_id   = get_the_ID();
+$edit_link = get_edit_post_link($plan_id);
+$title     = get_the_title($plan_id);
 
-$season = get_field('season_dates');
-if ($season) {
-    echo '<p><strong>Season:</strong> ' . esc_html($season['start_date']) . ' to ' . esc_html($season['end_date']) . '</p>';
+echo '<div class="wrap coach-dashboard yearly-plan">';
+echo '<h1>' . esc_html($title) . '</h1>';
+
+if ($edit_link) {
+    echo '<p><a class="button small" href="' . esc_url($edit_link) . '">Edit Plan</a></p>';
 }
 
-echo '<hr><h2>Competition Schedule</h2>';
+// --- Season Dates ---
+$season = get_field('season_dates');
+if ($season) {
+    $start = function_exists('coach_format_date') ? coach_format_date($season['start_date']) : $season['start_date'];
+    $end   = function_exists('coach_format_date') ? coach_format_date($season['end_date'])   : $season['end_date'];
+    echo '<p><strong>Season:</strong> ' . esc_html($start) . ' to ' . esc_html($end) . '</p>';
+}
+
+// --- Competition Schedule ---
+echo '<hr><div class="section"><h2>Competition Schedule</h2>';
 $competitions = get_field('competition_schedule');
 if ($competitions) {
     echo '<ul>';
@@ -24,8 +36,10 @@ if ($competitions) {
 } else {
     echo '<p>No competitions scheduled.</p>';
 }
+echo '</div>';
 
-echo '<hr><h2>Macrocycles</h2>';
+// --- Macrocycles ---
+echo '<hr><div class="section"><h2>Macrocycles</h2>';
 $macrocycles = get_field('macrocycles');
 if ($macrocycles) {
     echo '<ul>';
@@ -40,8 +54,10 @@ if ($macrocycles) {
 } else {
     echo '<p>No macrocycles defined.</p>';
 }
+echo '</div>';
 
-echo '<hr><h2>Weekly Themes</h2>';
+// --- Weekly Themes ---
+echo '<hr><div class="section"><h2>Weekly Themes</h2>';
 $themes = get_field('weekly_themes');
 if ($themes) {
     echo '<ul>';
@@ -56,21 +72,25 @@ if ($themes) {
 } else {
     echo '<p>No weekly themes set.</p>';
 }
+echo '</div>';
 
-echo '<hr><h2>Peak Planning</h2>';
+// --- Peak Planning ---
+echo '<hr><div class="section"><h2>Peak Planning</h2>';
 $peak = get_field('peak_planning');
 if ($peak) {
     echo '<ul>';
-    echo '<li><strong>Primary Peak:</strong> ' . esc_html($peak['primary_peak_event']) . '</li>';
-    echo '<li><strong>Secondary Peak:</strong> ' . esc_html($peak['secondary_peak_event']) . '</li>';
-    echo '<li><strong>Peak Type:</strong> ' . esc_html($peak['peak_type']) . '</li>';
-    echo '<li><strong>Peak Phase:</strong> ' . esc_html($peak['peak_phase_start']) . ' to ' . esc_html($peak['peak_phase_end']) . '</li>';
+    echo '<li><strong>Primary Peak:</strong> ' . esc_html($peak['primary_peak_event'] ?? '—') . '</li>';
+    echo '<li><strong>Secondary Peak:</strong> ' . esc_html($peak['secondary_peak_event'] ?? '—') . '</li>';
+    echo '<li><strong>Peak Type:</strong> ' . esc_html($peak['peak_type'] ?? '—') . '</li>';
+    echo '<li><strong>Peak Phase:</strong> ' . esc_html($peak['peak_phase_start'] ?? '—') . ' to ' . esc_html($peak['peak_phase_end'] ?? '—') . '</li>';
     echo '</ul>';
 } else {
     echo '<p>No peak phase set.</p>';
 }
+echo '</div>';
 
-echo '<hr><h2>Planned Off-Ice Activities</h2>';
+// --- Off-Ice Activities ---
+echo '<hr><div class="section"><h2>Planned Off-Ice Activities</h2>';
 $off_ice = get_field('off_ice_activities');
 if ($off_ice) {
     echo '<ul>';
@@ -81,18 +101,19 @@ if ($off_ice) {
 } else {
     echo '<p>No off-ice activities planned.</p>';
 }
+echo '</div>';
 
-echo '<hr><h2>Session Structure</h2>';
+// --- Session Structure ---
+echo '<hr><div class="section"><h2>Session Structure</h2>';
 $session = get_field('session_structure');
-if ($session) {
-    echo '<p>' . nl2br(esc_html($session)) . '</p>';
-} else {
-    echo '<p>No session structure defined.</p>';
-}
+echo $session ? '<p>' . nl2br(esc_html($session)) . '</p>' : '<p>No session structure defined.</p>';
+echo '</div>';
 
-echo '<hr><h2>Additional Notes</h2>';
+// --- Notes ---
+echo '<hr><div class="section"><h2>Additional Notes</h2>';
 $notes = get_field('notes');
 echo $notes ? '<p>' . nl2br(esc_html($notes)) . '</p>' : '<p>No notes provided.</p>';
+echo '</div>';
 
 echo '</div>';
 

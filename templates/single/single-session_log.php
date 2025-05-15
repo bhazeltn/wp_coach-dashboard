@@ -5,25 +5,36 @@
 
 get_header();
 
-$log_id = get_the_ID();
-$skater = get_field('linked_skater', $log_id);
-$session_date = get_field('session_date', $log_id);
-$summary = get_field('session_summary', $log_id);
-$program = get_field('program_work', $log_id);
-$energy = get_field('energy_check', $log_id);
-$mental = get_field('mental_check', $log_id);
-$notes = get_field('additional_notes', $log_id);
+$log_id        = get_the_ID();
+$skater        = get_field('linked_skater', $log_id);
+$edit_link     = get_edit_post_link($log_id);
+$session_date  = get_field('session_date', $log_id);
+$summary       = get_field('session_summary', $log_id);
+$program       = get_field('program_work', $log_id);
+$energy        = get_field('energy_check', $log_id);
+$mental        = get_field('mental_check', $log_id);
+$notes         = get_field('additional_notes', $log_id);
 
-// Wrapper
-echo '<div class="coach-dashboard session-log">';
+// Format the date
+$formatted_date = $session_date && function_exists('coach_format_date')
+    ? coach_format_date($session_date)
+    : $session_date;
+
+echo '<div class="wrap coach-dashboard single-session-log">';
 
 // Back button
-if ($skater) {
-    echo '<p><a class="button" href="' . site_url('/skater/' . $skater->post_name) . '">← Back to Skater</a></p>';
+if ($skater && is_object($skater)) {
+    $skater_link = site_url('/skater/' . $skater->post_name);
+    echo '<p><a class="button" href="' . esc_url($skater_link) . '">← Back to Skater</a></p>';
 }
 
 // Heading
-echo '<h1>Session Log – ' . esc_html($session_date) . '</h1>';
+echo '<h1>Session Log – ' . esc_html($formatted_date ?: '—') . '</h1>';
+
+// Optional edit button
+if ($edit_link) {
+    echo '<p><a class="button small" href="' . esc_url($edit_link) . '">Edit Log</a></p>';
+}
 
 // Summary
 if ($summary) {
@@ -37,7 +48,7 @@ if ($program) {
 
 // Energy
 if ($energy) {
-    echo '<h2>Energy/Stamina</h2><p>' . nl2br(esc_html($energy)) . '</p>';
+    echo '<h2>Energy / Stamina</h2><p>' . nl2br(esc_html($energy)) . '</p>';
 }
 
 // Mental Check
@@ -50,7 +61,6 @@ if ($notes) {
     echo '<h2>Additional Notes</h2><p>' . nl2br(esc_html($notes)) . '</p>';
 }
 
-// End wrapper
 echo '</div>';
 
 get_footer();

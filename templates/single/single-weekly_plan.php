@@ -7,6 +7,7 @@ get_header();
 
 $plan_id = get_the_ID();
 $skater = get_field('linked_skater', $plan_id);
+$edit_url = get_edit_post_link($plan_id);
 
 $start_date = get_field('week_start_date', $plan_id);
 $theme = get_field('weekly_theme', $plan_id);
@@ -17,21 +18,30 @@ $program_work = get_field('program_work', $plan_id);
 $energy = get_field('energy_check', $plan_id);
 $mental = get_field('mental_check', $plan_id);
 
+// Format date if helper exists
+$formatted_date = $start_date && function_exists('coach_format_date')
+    ? coach_format_date($start_date)
+    : $start_date;
 
-// Wrapper
-echo '<div class="coach-dashboard weekly-plan">';
+echo '<div class="wrap coach-dashboard single-weekly-plan">';
 
 // Back button
-if ($skater) {
-    echo '<p><a class="button" href="' . site_url('/skater/' . $skater->post_name) . '">← Back to Skater</a></p>';
+if ($skater && is_object($skater)) {
+    $skater_link = site_url('/skater/' . $skater->post_name);
+    echo '<p><a class="button" href="' . esc_url($skater_link) . '">← Back to Skater</a></p>';
 }
 
 // Heading
-echo '<h1>Weekly Plan – ' . esc_html($start_date) . '</h1>';
+echo '<h1>Weekly Plan – ' . esc_html($formatted_date ?: '—') . '</h1>';
+
+// Optional edit button
+if ($edit_url) {
+    echo '<p><a class="button small" href="' . esc_url($edit_url) . '">Edit Plan</a></p>';
+}
 
 // Theme
 if ($theme) {
-    echo '<p><strong>Theme:</strong> ' . esc_html($theme) . '</p>';
+    echo '<div><strong>Theme:</strong> ' . esc_html($theme) . '</div>';
 }
 
 // Notes
@@ -43,7 +53,7 @@ if ($notes) {
 if ($goal_refs) {
     echo '<h2>Related Goals</h2><ul>';
     foreach ($goal_refs as $goal) {
-        echo '<li><a href="' . get_permalink($goal->ID) . '">' . esc_html(get_the_title($goal->ID)) . '</a></li>';
+        echo '<li><a href="' . esc_url(get_permalink($goal->ID)) . '">' . esc_html(get_the_title($goal->ID)) . '</a></li>';
     }
     echo '</ul>';
 }
@@ -60,7 +70,7 @@ if ($program_work) {
 
 // Energy Check
 if ($energy) {
-    echo '<h2>Energy/Stamina Notes</h2><p>' . nl2br(esc_html($energy)) . '</p>';
+    echo '<h2>Energy / Stamina Notes</h2><p>' . nl2br(esc_html($energy)) . '</p>';
 }
 
 // Mental Well-being
@@ -68,7 +78,6 @@ if ($mental) {
     echo '<h2>Mental Training & Well-being</h2><p>' . nl2br(esc_html($mental)) . '</p>';
 }
 
-// End wrapper
 echo '</div>';
 
 get_footer();
