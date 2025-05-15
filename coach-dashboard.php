@@ -4,8 +4,6 @@
  * Description: Modular frontend dashboard for coaches to manage skaters and plans.
  */
 
-// === Core Includes ===
-
 // === Custom Post Types ===
 include_once plugin_dir_path(__FILE__) . 'includes/cpt-goal.php';
 include_once plugin_dir_path(__FILE__) . 'includes/cpt-skater.php';
@@ -53,6 +51,8 @@ function render_coach_dashboard() {
     coach_dashboard_section('weekly_plan_tracker');
     coach_dashboard_section('goal_tracker');
     coach_dashboard_section('competition_results');
+    coach_dashboard_section('competitions_upcoming');
+    coach_dashboard_section('missed_goals');
     coach_dashboard_section('session_logs');
     echo '</div>';
 
@@ -83,6 +83,12 @@ function coach_section_goal_tracker() {
 }
 function coach_section_competition_results() {
     include plugin_dir_path(__FILE__) . 'sections/skater/competition-results.php';
+}
+function coach_section_competitions_upcoming() {
+    include plugin_dir_path(__FILE__) . 'sections/skater/competitions-upcoming.php';
+}
+function coach_section_missed_goals() {
+    include plugin_dir_path(__FILE__) . 'sections/skater/missed-goals.php';
 }
 function coach_section_session_logs() {
     include plugin_dir_path(__FILE__) . 'sections/skater/session-logs.php';
