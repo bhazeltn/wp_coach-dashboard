@@ -1,0 +1,20 @@
+# OS and editor files
+.DS_Store
+*.log
+*.bak
+*.swp
+
+# Node/npm/Composer (if you add tooling later)
+node_modules/
+vendor/
+
+# VS Code workspace files
+.vscode/
+
+# WordPress uploads/cache (if used for testing)
+wp-content/uploads/
+wp-content/cache/
+
+# JetBrains
+.idea/
+EOF

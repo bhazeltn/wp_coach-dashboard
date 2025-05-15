@@ -1,0 +1,59 @@
+.coach-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: system-ui, sans-serif;
+}
+
+.coach-dashboard h1 {
+  font-size: 2.2rem;
+  margin-bottom: 1rem;
+}
+
+.coach-dashboard h2 {
+  font-size: 1.5rem;
+  margin-top: 2.5rem;
+  border-bottom: 2px solid #e2e2e2;
+  padding-bottom: 0.3rem;
+  color: #333;
+}
+
+.coach-dashboard table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.coach-dashboard th, .coach-dashboard td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: left;
+  font-size: 0.95rem;
+}
+
+.coach-dashboard th {
+  background-color: #f0f0f0;
+  font-weight: 600;
+}
+
+.coach-dashboard td a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.coach-dashboard td a:hover {
+  text-decoration: underline;
+}
+
+.coach-dashboard a.button {
+  background-color: #0073aa;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 4px;
+  text-decoration: none;
+  margin-bottom: 1rem;
+  display: inline-block;
+}
+.coach-dashboard a.button:hover {
+  background-color: #005a87;
+}
