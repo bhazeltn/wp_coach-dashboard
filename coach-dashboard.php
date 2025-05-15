@@ -5,7 +5,6 @@
  */
 
 // === Core Includes ===
-include_once plugin_dir_path(__FILE__) . 'functions.php';
 
 // === Custom Post Types ===
 include_once plugin_dir_path(__FILE__) . 'includes/cpt-goal.php';
