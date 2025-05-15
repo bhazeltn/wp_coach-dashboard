@@ -4,12 +4,32 @@
  * Description: Modular frontend dashboard for coaches to manage skaters and plans.
  */
 
-// === Core Includes ===
-include_once plugin_dir_path(__FILE__) . 'functions.php';
-include_once plugin_dir_path(__FILE__) . 'includes/cpt-program.php';
-include_once plugin_dir_path(__FILE__) . 'includes/routing.php';
-include_once plugin_dir_path(__FILE__) . 'includes/acf-redirects.php';
-include_once plugin_dir_path(__FILE__) . 'includes/helper-functions.php';
+ ChatGPT said:
+ Here’s the full block of include_once lines to drop into your coach-dashboard.php file, ideally just after your functions.php line.
+ 
+ 🔧 coach-dashboard.php → Load All CPTs
+ php
+ Copy
+ Edit
+ // === Core Includes ===
+ include_once plugin_dir_path(__FILE__) . 'functions.php';
+ 
+ // === Custom Post Types ===
+ include_once plugin_dir_path(__FILE__) . 'includes/cpt-goal.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/cpt-skater.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/cpt-weekly_plan.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/cpt-yearly_plan.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/cpt-session_log.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/cpt-competition.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/cpt-competition_result.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/cpt-program.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/cpt-meeting_log.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/cpt-injury_log.php';
+ 
+ // === Routing, Redirects, Helpers ===
+ include_once plugin_dir_path(__FILE__) . 'includes/routing.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/acf-redirects.php';
+ include_once plugin_dir_path(__FILE__) . 'includes/helper-functions.php';
 
 // === Enqueue Styles ===
 add_action('wp_enqueue_scripts', function () {
