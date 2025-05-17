@@ -1,28 +1,46 @@
 <?php
 /**
- * Template for creating a new Skater post using ACF form block
+ * Template: Create or Edit Goal
  */
 
 acf_form_head();
 get_header();
 
-$field_group_key = 'group_6819871fd44c9'; // ✅ Skater Profile
+echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
+echo '<div class="wrap coach-dashboard">';
 
-echo '<div class="wrap coach-dashboard create-skater">';
-echo '<h1>Create New Skater</h1>';
-echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">Cancel</a></p>';
+// === Determine if we're editing an existing goal ===
+$goal_id = isset($_GET['goal_id']) ? intval($_GET['goal_id']) : 0;
+$is_edit = ($goal_id && get_post_type($goal_id) === 'goal');
 
+// === Determine skater context ===
+$skater_raw = $is_edit
+    ? get_field('skater', $goal_id)
+    : ($_GET['skater_id'] ?? null);
+
+$skater_id = null;
+
+if (is_array($skater_raw)) {
+    $skater_id = $skater_raw[0]->ID ?? null;
+} elseif (is_numeric($skater_raw)) {
+    $skater_id = intval($skater_raw);
+}
+
+// === Page Title ===
+echo '<h1>' . esc_html($is_edit ? 'Update Goal' : 'Create New Goal') . '</h1>';
+
+// === ACF Form ===
 acf_form([
-    'post_id'         => 'new_post',
-    'new_post'        => [
-        'post_type'   => 'skater',
-        'post_status' => 'publish',
+    'post_id'       => $is_edit ? $goal_id : 'new_post',
+    'post_title'    => true,
+    'post_content'  => false,
+    'new_post'      => $is_edit ? false : [
+        'post_type'   => 'goal',
+        'post_status' => 'publish'
     ],
-    'field_groups'    => [$field_group_key],
-    'submit_value'    => 'Create Skater',
-    'uploader'        => 'wp',
+    'submit_value'  => $is_edit ? 'Update Goal' : 'Create Goal',
+    'return'        => $skater_id
+        ? site_url('/skater/' . get_post_field('post_name', $skater_id) . '/')
+        : site_url('/coach-dashboard'),
+    'field_groups'  => ['group_681c4115a026f'], // ACF Group: Goal
 ]);
-
-echo '</div>';
-
-get_footer();

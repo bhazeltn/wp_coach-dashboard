@@ -3,7 +3,7 @@
 $skater_id = $GLOBALS['skater_id'] ?? null;
 
 echo '<h2>Goals</h2>';
-echo '<p><a class="button" href="' . admin_url('post-new.php?post_type=goal') . '">Add Goal</a></p>';
+echo '<p><a class="button" href="' . esc_url(site_url('/create-goal?skater_id=' . $skater_id)) . '">Add Goal</a></p>';
 
 // Fetch all goals linked to this skater
 $goals = get_posts([
@@ -14,7 +14,7 @@ $goals = get_posts([
     'orderby'     => 'meta_value',
     'order'       => 'ASC',
     'meta_query'  => [[
-        'key'     => 'linked_skater',
+        'key'     => 'skater',
         'value'   => '"' . $skater_id . '"',
         'compare' => 'LIKE',
     ]]
@@ -31,12 +31,33 @@ if ($goals) {
 
     foreach ($goals as $goal) {
         $title      = get_the_title($goal->ID) ?: '[Untitled]';
-        $timeframe  = get_field('goal_timeframe', $goal->ID) ?: '—';
-        $status     = get_field('goal_status', $goal->ID) ?: '—';
-        $target     = get_field('target_date', $goal->ID) ?: '—';
+        $view_url   = get_permalink($goal->ID);
+        $edit_url   = site_url('/edit-goal?goal_id=' . $goal->ID);
+
+        $title_cell = esc_html($title);
+        $title_cell .= ' <span style="font-size: 0.9em;">(';
+        $title_cell .= '<a href="' . esc_url($view_url) . '">View</a>';
+        if ($edit_url) {
+            $title_cell .= ' | <a href="' . esc_url($edit_url) . '">Update</a>';
+        }
+        $title_cell .= ')</span>';
+
+        $timeframe = get_field('goal_timeframe', $goal->ID) ?: '—';
+
+        $status_raw = get_field('current_status', $goal->ID);
+        $status = is_array($status_raw) ? implode(', ', $status_raw) : ($status_raw ?: '—');
+
+        $target_raw = get_field('target_date', $goal->ID);
+        $target = '—';
+        if ($target_raw) {
+            $dt = DateTime::createFromFormat('d/m/Y', $target_raw);
+            if ($dt) {
+                $target = date_i18n('F j, Y', $dt->getTimestamp());
+            }
+        }
 
         echo '<tr>
-            <td>' . esc_html($title) . '</td>
+            <td>' . $title_cell . '</td>
             <td>' . esc_html($timeframe) . '</td>
             <td>' . esc_html($status) . '</td>
             <td>' . esc_html($target) . '</td>

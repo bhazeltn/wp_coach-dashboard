@@ -104,3 +104,23 @@
   color: #c00;
   font-weight: bold;
 }
+
+.coach-dashboard select,
+.coach-dashboard input[type="text"],
+.coach-dashboard textarea {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #fff;
+}
+
+.coach-dashboard select:focus,
+.coach-dashboard input[type="text"]:focus,
+.coach-dashboard textarea:focus {
+  border-color: #0073aa;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.2);
+}

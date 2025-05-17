@@ -17,6 +17,10 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^create-program/?$', 'index.php?create_program=1', 'top');
     add_rewrite_rule('^create-meeting-log/?$', 'index.php?create_meeting_log=1', 'top');
     add_rewrite_rule('^create-injury-log/?$', 'index.php?create_injury_log=1', 'top');
+
+    // Edit forms
+    add_rewrite_rule('^edit-goal/?$', 'index.php?edit_goal=1', 'top');
+
 }
 add_action('init', 'spd_add_custom_rewrite_rules');
 
@@ -25,10 +29,13 @@ add_action('init', 'spd_add_custom_rewrite_rules');
 function spd_add_query_vars($vars) {
     $vars[] = 'skater_view';
     $vars[] = 'coach_dashboard';
-    $vars[] = 'create_goal';
     $vars[] = 'create_program';
     $vars[] = 'create_meeting_log';
     $vars[] = 'create_injury_log';
+    $vars[] = 'create_goal';
+    $vars[] = 'edit_goal';
+    $vars[] = 'goal_id';
+
     return $vars;
 }
 add_filter('query_vars', 'spd_add_query_vars');
@@ -48,6 +55,11 @@ function spd_template_redirects() {
 
     if (get_query_var('create_goal')) {
         include plugin_dir_path(__DIR__) . '/templates/create/create-goal.php';
+        exit;
+    }
+
+    if (get_query_var('edit_goal')) {
+        include plugin_dir_path(__FILE__) . '/../templates/create/create-goal.php';
         exit;
     }
 
