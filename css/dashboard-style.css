@@ -24,7 +24,8 @@
   margin-top: 1rem;
 }
 
-.coach-dashboard th, .coach-dashboard td {
+.coach-dashboard th,
+.coach-dashboard td {
   border: 1px solid #ccc;
   padding: 10px;
   text-align: left;
@@ -54,6 +55,52 @@
   margin-bottom: 1rem;
   display: inline-block;
 }
+
 .coach-dashboard a.button:hover {
   background-color: #005a87;
+}
+
+/* Improve table zebra striping */
+.coach-dashboard tbody tr:nth-child(odd) {
+  background-color: #fafafa;
+}
+
+/* Space between table and buttons/headers */
+.coach-dashboard table+p,
+.coach-dashboard h2+p {
+  margin-top: 0.5rem;
+}
+
+/* Make section blocks stand out */
+.coach-dashboard .ytp-block {
+  border: 1px solid #ddd;
+  background-color: #fff;
+  padding: 1.25rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  margin-bottom: 2rem;
+}
+
+/* Tweak buttons for smaller screens */
+.coach-dashboard a.button {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Headings inside blocks */
+.coach-dashboard .ytp-block h3 {
+  margin-top: 0;
+  font-size: 1.3rem;
+}
+
+/* Utility: spacing reset for ULs and Ps inside blocks */
+.coach-dashboard .ytp-block p,
+.coach-dashboard .ytp-block ul {
+  margin: 0.5rem 0 1rem;
+}
+
+/* Highlight overdue items */
+.coach-dashboard .overdue {
+  color: #c00;
+  font-weight: bold;
 }

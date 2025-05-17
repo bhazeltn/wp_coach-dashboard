@@ -47,15 +47,15 @@ foreach ($skaters as $skater) {
             'value'   => '"' . $skater_id . '"',
             'compare' => 'LIKE',
         ]],
-        'orderby' => 'meta_value',
-        'meta_key' => 'season_dates_start_date',
-        'order' => 'DESC',
+        'orderby'   => 'meta_value',
+        'meta_key'  => 'season_dates_start_date',
+        'order'     => 'DESC',
     ]);
 
     $current_plan = null;
     foreach ($plans as $plan) {
         $season = get_field('season_dates', $plan->ID);
-        if ($season && isset($season['start_date'], $season['end_date'])) {
+        if (is_array($season) && isset($season['start_date'], $season['end_date'])) {
             if ($today >= $season['start_date'] && $today <= $season['end_date']) {
                 $current_plan = $plan;
                 break;
