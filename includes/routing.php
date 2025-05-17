@@ -20,6 +20,7 @@ function spd_add_custom_rewrite_rules() {
 
     // Edit forms
     add_rewrite_rule('^edit-goal/?$', 'index.php?edit_goal=1', 'top');
+    add_rewrite_rule('^edit-injury-log/([0-9]+)/?$', 'index.php?edit_injury_log=$matches[1]', 'top');
 
 }
 add_action('init', 'spd_add_custom_rewrite_rules');
@@ -32,9 +33,11 @@ function spd_add_query_vars($vars) {
     $vars[] = 'create_program';
     $vars[] = 'create_meeting_log';
     $vars[] = 'create_injury_log';
+    $vars[] = 'edit_injury_log';
     $vars[] = 'create_goal';
     $vars[] = 'edit_goal';
     $vars[] = 'goal_id';
+    $vars[] = 'injury_id';
 
     return $vars;
 }
@@ -75,6 +78,11 @@ function spd_template_redirects() {
 
     if (get_query_var('create_injury_log')) {
         include plugin_dir_path(__DIR__) . '/templates/create/create-injury_log.php';
+        exit;
+    }
+
+    if (get_query_var('edit_injury_log')) {
+        include plugin_dir_path(__FILE__) . '/../templates/create/create-injury_log.php';
         exit;
     }
 }

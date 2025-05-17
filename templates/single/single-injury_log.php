@@ -1,50 +1,65 @@
 <?php
 /**
- * Template for displaying a single Injury Log
+ * Single Injury Log View Template
  */
 
+if (!is_user_logged_in()) {
+    auth_redirect();
+}
+
 get_header();
-the_post();
 
-$injury_id    = get_the_ID();
-$date         = get_field('injury_date', $injury_id);
-$area         = get_field('injured_area', $injury_id);
-$details      = get_field('injury_details', $injury_id);
-$return_date  = get_field('estimated_return', $injury_id);
-$recovery     = get_field('recovery_notes', $injury_id);
-$edit_link    = get_edit_post_link($injury_id);
+// Load dashboard styles
+echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
 
-// Format date
-$injury_date_fmt = $date && function_exists('coach_format_date') ? coach_format_date($date) : $date;
-$return_fmt      = $return_date && function_exists('coach_format_date') ? coach_format_date($return_date) : $return_date;
+echo '<div class="wrap coach-dashboard">';
 
-echo '<div class="wrap coach-dashboard single-injury-log">';
+// Fetch injury log post
+$injury_id = get_the_ID();
+$skater_raw = get_field('injured_skater', $injury_id);
+$skater = is_array($skater_raw) ? ($skater_raw[0] ?? null) : $skater_raw;
 
-// Title & Edit
-echo '<h1>' . esc_html(get_the_title()) . '</h1>';
-if ($edit_link) {
-    echo '<p><a class="button small" href="' . esc_url($edit_link) . '">Edit Injury Log</a></p>';
+// Links
+$skater_slug = $skater ? $skater->post_name : null;
+$back_link = $skater_slug ? site_url('/skater/' . $skater_slug . '/') : site_url('/coach-dashboard');
+$edit_link = site_url('/edit-injury-log/' . $injury_id);
+
+// Header & Navigation
+echo '<p><a class="button" href="' . esc_url($back_link) . '">&larr; Back to ' . ($skater ? esc_html($skater->post_title) : 'Coach Dashboard') . '</a></p>';
+echo '<h1>Injury Log</h1>';
+
+// Skater and date
+echo '<p><strong>Skater:</strong> ' . ($skater ? esc_html(get_the_title($skater)) : '[Unknown]') . '</p>';
+
+$onset_raw = get_field('date_of_onset', $injury_id);
+$onset = DateTime::createFromFormat('d/m/Y', $onset_raw);
+echo '<p><strong>Date of Onset:</strong> ' . ($onset ? esc_html(date_i18n('F j, Y', $onset->getTimestamp())) : '—') . '</p>';
+
+// Fields
+$severity = get_field('severity', $injury_id);
+echo '<p><strong>Severity:</strong> ' . esc_html($severity['label'] ?? '—') . '</p>';
+
+$areas = get_field('body_area', $injury_id);
+if ($areas && is_array($areas)) {
+    echo '<p><strong>Body Area:</strong> ' . esc_html(implode(', ', $areas)) . '</p>';
+} else {
+    echo '<p><strong>Body Area:</strong> —</p>';
 }
 
-// Date & Area
-echo '<p><strong>Injury Date:</strong> ' . esc_html($injury_date_fmt ?: '—') . '</p>';
-echo '<p><strong>Affected Area:</strong> ' . esc_html($area ?: '—') . '</p>';
+$type = get_field('injury_type', $injury_id);
+echo '<p><strong>Description:</strong> ' . esc_html($type ?: '—') . '</p>';
 
-// Details
-if ($details) {
-    echo '<h2>Injury Details</h2><p>' . nl2br(esc_html($details)) . '</p>';
+$status = get_field('recovery_status', $injury_id);
+echo '<p><strong>Recovery Status:</strong> ' . esc_html($status['label'] ?? '—') . '</p>';
+
+
+$notes = get_field('recovery_notes', $injury_id);
+if ($notes) {
+    echo '<h2>Recovery Notes</h2>';
+    echo wp_kses_post(wpautop($notes));
 }
 
-// Estimated Return
-if ($return_fmt) {
-    echo '<p><strong>Estimated Return:</strong> ' . esc_html($return_fmt) . '</p>';
-}
-
-// Recovery Notes
-if ($recovery) {
-    echo '<h2>Recovery Plan / Notes</h2><p>' . nl2br(esc_html($recovery)) . '</p>';
-}
-
+echo '<p><a class="button" href="' . esc_url($edit_link) . '">Update Injury Log</a></p>';
 echo '</div>';
 
 get_footer();
