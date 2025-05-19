@@ -37,8 +37,8 @@ if ($sessions->have_posts()) {
         $date_obj = DateTime::createFromFormat('d/m/Y', $date_raw);
         $formatted_date = $date_obj ? $date_obj->format('M j, Y') : esc_html($date_raw);
 
-        $energy = get_field('energy__stamina');
-        $wellbeing = get_field('wellbeing__focus_check-in');
+        $energy = get_field('energy_stamina');
+        $wellbeing = get_field('wellbeing_focus_check-in');
         if (is_array($wellbeing)) {
             $wellbeing = implode(', ', $wellbeing);
         }

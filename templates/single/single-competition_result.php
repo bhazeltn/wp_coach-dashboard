@@ -16,7 +16,7 @@ the_post();
 $result_id = get_the_ID();
 
 // Linked skater and competition
-$skater = get_field('linked_skater', $result_id);
+$skater = get_field('skater', $result_id);
 $comp   = get_field('linked_competition', $result_id);
 $skater_name = is_array($skater) ? get_the_title($skater[0]) : ($skater ? get_the_title($skater) : '—');
 $comp_name   = is_array($comp) ? get_the_title($comp[0]) : ($comp ? get_the_title($comp) : '—');

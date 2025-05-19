@@ -35,7 +35,7 @@ foreach ($results as $r) {
     $comp = get_field('linked_competition', $r->ID);
     $comp = is_array($comp) ? ($comp[0] ?? null) : $comp;
 
-    $skater = get_field('linked_skater', $r->ID);
+    $skater = get_field('skater', $r->ID);
     $skater = is_array($skater) ? ($skater[0] ?? null) : $skater;
 
     if ($comp && $skater && is_object($comp) && is_object($skater)) {

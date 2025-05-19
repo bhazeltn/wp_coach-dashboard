@@ -60,7 +60,7 @@ foreach ($grouped as $comp_data) {
         </tr></thead><tbody>';
 
     foreach ($comp_data['results'] as $result) {
-        $skater = get_field('linked_skater', $result->ID);
+        $skater = get_field('skater', $result->ID);
         $skater = is_array($skater) ? ($skater[0] ?? null) : $skater;
 
         $placement = get_field('placement', $result->ID) ?: '—';

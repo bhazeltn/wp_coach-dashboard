@@ -38,8 +38,8 @@ if ($sessions->have_posts()) {
         }
 
         // Energy & Wellbeing
-        $energy = get_field('energy__stamina');
-        $wellbeing = get_field('wellbeing__focus_check-in');
+        $energy = get_field('energy_stamina');
+        $wellbeing = get_field('wellbeing_focus_check-in');
         if (is_array($wellbeing)) {
             $wellbeing = implode(', ', $wellbeing);
         }

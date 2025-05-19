@@ -18,7 +18,7 @@ $results = get_posts([
     'numberposts' => -1,
     'post_status' => 'publish',
     'meta_query'  => [[
-        'key'     => 'linked_skater',
+        'key'     => 'skater',
         'value'   => '"' . $skater_id . '"',
         'compare' => 'LIKE',
     ]]

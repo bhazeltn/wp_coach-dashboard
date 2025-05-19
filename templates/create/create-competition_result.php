@@ -19,7 +19,7 @@ $post_id = $is_edit ? intval($result_id) : 'new_post';
 // Try to determine skater for redirect
 $skater_id = null;
 if ($is_edit && $post_id && get_post_type($post_id) === 'competition_result') {
-    $skater = get_field('linked_skater', $post_id);
+    $skater = get_field('skater', $post_id);
     if ($skater instanceof WP_Post) {
         $skater_id = $skater->ID;
     }

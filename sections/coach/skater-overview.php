@@ -43,7 +43,7 @@ foreach ($skaters as $skater) {
         'numberposts' => -1,
         'post_status' => 'publish',
         'meta_query'  => [[
-            'key'     => 'linked_skaters',
+            'key'     => 'skater',
             'value'   => '"' . $skater_id . '"',
             'compare' => 'LIKE',
         ]],
