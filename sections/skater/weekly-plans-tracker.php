@@ -1,64 +1,50 @@
 <?php
-// --- Weekly Plans ---
-$skater_id = $GLOBALS['skater_id'] ?? null;
+$skater_id = $GLOBALS['skater_id'];
 
-echo '<h2>Weekly Plans</h2>';
-echo '<p><a class="button" href="' . admin_url('post-new.php?post_type=weekly_plan') . '">Add Weekly Plan</a></p>';
-
-// Fetch all weekly plans for this skater
-$weekly_plans = get_posts([
-    'post_type'   => 'weekly_plan',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-    'meta_key'    => 'week_start_date',
-    'orderby'     => 'meta_value',
-    'order'       => 'DESC',
-    'meta_query'  => [[
-        'key'     => 'linked_skater',
-        'value'   => '"' . $skater_id . '"',
-        'compare' => 'LIKE',
-    ]]
+$plans = new WP_Query([
+    'post_type'      => 'weekly_plan',
+    'posts_per_page' => 5,
+    'meta_key'       => 'week_start',
+    'orderby'        => 'meta_value',
+    'order'          => 'DESC',
+    'meta_query'     => [
+        [
+            'key'     => 'skater',
+            'value'   => '"' . $skater_id . '"',
+            'compare' => 'LIKE',
+        ],
+    ],
 ]);
 
-if ($weekly_plans) {
-    echo '<table class="widefat fixed striped">';
-    echo '<thead><tr>
-            <th>Week Start</th>
-            <th>Theme</th>
-            <th>Notes</th>
-            <th># Goals</th>
-            <th># Logs</th>
-        </tr></thead><tbody>';
+    echo '<div class="dashboard-section">';
+    echo '<h2>Weekly Plans</h2>';
+    echo '<p><a class="button" href="' . esc_url(site_url('/create-weekly-plan/?skater_id=' . $skater_id)) . '">+ Add Weekly Plan</a></p>';
 
-    foreach ($weekly_plans as $wp) {
-        $date       = get_field('week_start_date', $wp->ID) ?: '—';
-        $theme      = get_field('weekly_theme', $wp->ID) ?: '—';
-        $notes      = wp_trim_words(get_field('notes', $wp->ID) ?: '', 12) ?: '—';
-        $goals      = get_field('linked_goals', $wp->ID);
-        $goal_count = is_array($goals) ? count($goals) : 0;
+    echo '<table class="dashboard-table">';
+    echo '<thead><tr><th>Week Starting</th><th>Theme</th><th>Actions</th></tr></thead>';
+    echo '<tbody>';
 
-        // Count session logs linked to this weekly plan
-        $log_count = count(get_posts([
-            'post_type'   => 'session_log',
-            'post_status' => 'publish',
-            'numberposts' => -1,
-            'meta_query'  => [[
-                'key'     => 'linked_weekly_plan',
-                'value'   => $wp->ID,
-                'compare' => '='
-            ]]
-        ]));
+if ($plans->have_posts()) {    
+    while ($plans->have_posts()) {
+        $plans->the_post();
 
-        echo '<tr>
-            <td>' . esc_html($date) . '</td>
-            <td>' . esc_html($theme) . '</td>
-            <td>' . esc_html($notes) . '</td>
-            <td>' . esc_html($goal_count) . '</td>
-            <td>' . esc_html($log_count) . '</td>
-        </tr>';
+        $start_raw = get_field('week_start');
+        $date_obj = DateTime::createFromFormat('d/m/Y', $start_raw);
+        $formatted = $date_obj ? $date_obj->format('M j, Y') : esc_html($start_raw);
+
+        $theme = get_field('theme');
+
+        echo '<tr>';
+        echo '<td>' . esc_html($formatted) . '</td>';
+        echo '<td>' . esc_html($theme) . '</td>';
+        echo '<td>';
+        echo '<a class="button-small" href="' . esc_url(get_permalink()) . '">View</a> | ';
+        echo '<a class="button-small" href="' . esc_url(site_url('/edit-weekly-plan/' . get_the_ID())) . '">Update</a>';
+        echo '</td>';
+        echo '</tr>';
     }
 
     echo '</tbody></table>';
-} else {
-    echo '<p>No weekly plans found.</p>';
+    echo '</div>';
+    wp_reset_postdata();
 }

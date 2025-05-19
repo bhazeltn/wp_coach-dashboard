@@ -33,6 +33,6 @@ include plugin_dir_path(__FILE__) . '../sections/coach/meeting-upcoming.php';
 coach_dashboard_section('missed_goals');
 coach_dashboard_section('session_logs');
 
-echo '</div>';
+echo '</div>'; 
 
 get_footer();

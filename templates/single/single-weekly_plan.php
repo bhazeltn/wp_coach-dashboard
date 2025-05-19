@@ -1,83 +1,93 @@
 <?php
 /**
- * Template for displaying a single Weekly Plan
+ * Template: View Single Weekly Plan
  */
 
 get_header();
+echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
 
-$plan_id = get_the_ID();
-$skater = get_field('linked_skater', $plan_id);
-$edit_url = get_edit_post_link($plan_id);
-
-$start_date = get_field('week_start_date', $plan_id);
-$theme = get_field('weekly_theme', $plan_id);
-$notes = get_field('weekly_notes', $plan_id);
-$goal_refs = get_field('related_goals', $plan_id);
-$plan_summary = get_field('plan_summary', $plan_id);
-$program_work = get_field('program_work', $plan_id);
-$energy = get_field('energy_check', $plan_id);
-$mental = get_field('mental_check', $plan_id);
-
-// Format date if helper exists
-$formatted_date = $start_date && function_exists('coach_format_date')
-    ? coach_format_date($start_date)
-    : $start_date;
-
-echo '<div class="wrap coach-dashboard single-weekly-plan">';
-
-// Back button
-if ($skater && is_object($skater)) {
-    $skater_link = site_url('/skater/' . $skater->post_name);
-    echo '<p><a class="button" href="' . esc_url($skater_link) . '">← Back to Skater</a></p>';
+if (!is_user_logged_in()) {
+    auth_redirect();
 }
 
-// Heading
-echo '<h1>Weekly Plan – ' . esc_html($formatted_date ?: '—') . '</h1>';
+global $post;
+setup_postdata($post);
 
-// Optional edit button
-if ($edit_url) {
-    echo '<p><a class="button small" href="' . esc_url($edit_url) . '">Edit Plan</a></p>';
+// Fields
+$skater = get_field('skater');
+$yearly_plan = get_field('related_yearly_plan');
+$week_start = get_field('week_start');
+$theme = get_field('theme');
+$off_ice = get_field('planned_off_ice_activities');
+$sessions = get_field('session_breakdown');
+
+// Format week start
+$week_obj = DateTime::createFromFormat('d/m/Y', $week_start);
+
+$formatted_week = $week_obj ? $week_obj->format('F j, Y') : esc_html($week_start);
+
+// Begin output
+echo '<div class="wrap coach-dashboard">';
+echo '<h1>Weekly Plan</h1>';
+
+echo '<div class="dashboard-box">';
+echo '<p><strong>Week Starting:</strong> ' . esc_html($formatted_week) . '</p>';
+
+if ($skater && is_array($skater)) {
+    $skater = $skater[0];
+}
+if ($skater) {
+    echo '<p><strong>Skater:</strong> <a href="' . esc_url(site_url('/skater/' . $skater->post_name)) . '">' . esc_html(get_the_title($skater)) . '</a></p>';
 }
 
-// Theme
-if ($theme) {
-    echo '<div><strong>Theme:</strong> ' . esc_html($theme) . '</div>';
+if ($yearly_plan && is_array($yearly_plan)) {
+    $yearly_plan = $yearly_plan[0];
+}
+if ($yearly_plan) {
+    echo '<p><strong>Yearly Plan:</strong> ' . esc_html(get_the_title($yearly_plan)) . '</p>';
 }
 
-// Notes
-if ($notes) {
-    echo '<h2>Weekly Notes</h2><p>' . nl2br(esc_html($notes)) . '</p>';
+if (!empty($theme)) {
+    echo '<p><strong>Theme:</strong> ' . esc_html($theme) . '</p>';
 }
+echo '</div>';
 
-// Related Goals
-if ($goal_refs) {
-    echo '<h2>Related Goals</h2><ul>';
-    foreach ($goal_refs as $goal) {
-        echo '<li><a href="' . esc_url(get_permalink($goal->ID)) . '">' . esc_html(get_the_title($goal->ID)) . '</a></li>';
+if ($off_ice && is_array($off_ice)) {
+    echo '<table class="dashboard-table">';
+echo '<thead><tr><th>Day</th><th>Type</th><th>Activity</th></tr></thead>';
+echo '<tbody>';
+foreach ($off_ice as $entry) {
+    $type = $entry['type'];
+    if (is_array($type)) {
+        $type = implode(', ', $type);
     }
-    echo '</ul>';
+    $notes = $entry['activity'] ?? '';
+
+    echo '<tr>';
+    echo '<td>' . esc_html($entry['day']) . '</td>';
+    echo '<td>' . esc_html($type) . '</td>';
+    echo '<td>' . nl2br(esc_html($notes)) . '</td>';
+    echo '</tr>';
+}
+echo '</tbody></table>';
 }
 
-// Plan Summary
-if ($plan_summary) {
-    echo '<h2>Planned Training Summary</h2><p>' . nl2br(esc_html($plan_summary)) . '</p>';
+if ($sessions && is_array($sessions)) {
+    echo '<table class="dashboard-table">';
+echo '<thead><tr><th>Day</th><th>Primary Focus</th><th>Program Run-Through</th></tr></thead>';
+echo '<tbody>';
+foreach ($sessions as $entry) {
+    echo '<tr>';
+    echo '<td>' . esc_html($entry['day']) . '</td>';
+    echo '<td>' . esc_html($entry['primary_focus']) . '</td>';
+    echo '<td>' . esc_html($entry['program_run_thru']) . '</td>';
+    echo '</tr>';
+}
+echo '</tbody></table>';
 }
 
-// Program Work
-if ($program_work) {
-    echo '<h2>Program Work</h2><p>' . nl2br(esc_html($program_work)) . '</p>';
-}
-
-// Energy Check
-if ($energy) {
-    echo '<h2>Energy / Stamina Notes</h2><p>' . nl2br(esc_html($energy)) . '</p>';
-}
-
-// Mental Well-being
-if ($mental) {
-    echo '<h2>Mental Training & Well-being</h2><p>' . nl2br(esc_html($mental)) . '</p>';
-}
-
+echo '<p><a class="button" href="' . esc_url(site_url('/edit-weekly-plan/' . get_the_ID())) . '">Update This Plan</a></p>';
+echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">Back to Dashboard</a></p>';
 echo '</div>';
 
 get_footer();

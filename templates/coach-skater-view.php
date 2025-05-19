@@ -49,7 +49,7 @@ include plugin_dir_path(__FILE__) . '../sections/skater/injury-log.php';
 // include plugin_dir_path(__FILE__) . '../sections/skater/yearly-plans.php';
 
 // SECTION 3: Weekly Plans
-// include plugin_dir_path(__FILE__) . '../sections/skater/weekly-plans.php';
+include plugin_dir_path(__FILE__) . '../sections/skater/weekly-plans-tracker.php';
 
 // SECTION 4: Goals
 include plugin_dir_path(__FILE__) . '../sections/skater/goals.php';
