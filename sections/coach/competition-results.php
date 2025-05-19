@@ -1,24 +1,15 @@
 <?php
-// --- Coach Dashboard: Competition Results for Current Season ---
+// --- Coach Dashboard: Competition Results Summary ---
 
-echo '<h2>Current Season Competition Results</h2>';
-echo '<p><a class="button" href="' . admin_url('post-new.php?post_type=competition') . '">Add Competition</a></p>';
+echo '<h2>Competition Results</h2>';
 
-// Define ISU season range
-$today         = date('Y-m-d');
-$season_year   = (date('n') >= 7) ? date('Y') : date('Y') - 1;
-$season_start  = $season_year . '-07-01';
-$season_end    = ($season_year + 1) . '-06-30';
+$today = date('Y-m-d');
 
-// Get all competition results (filter manually by linked_competition date)
+// Fetch all competition results
 $results = get_posts([
     'post_type'   => 'competition_result',
     'numberposts' => -1,
     'post_status' => 'publish',
-    'meta_query'  => [[
-        'key'     => 'linked_competition',
-        'compare' => 'EXISTS',
-    ]]
 ]);
 
 if (empty($results)) {
@@ -26,64 +17,83 @@ if (empty($results)) {
     return;
 }
 
-$filtered = [];
+// Group results by past competitions
+$grouped = [];
 
 foreach ($results as $result) {
-    $competition = get_field('linked_competition', $result->ID);
-    $date        = $competition ? get_field('date', $competition->ID) : null;
+    $comp = get_field('linked_competition', $result->ID);
+    $comp = is_array($comp) ? ($comp[0] ?? null) : $comp;
+    if (!$comp || !is_object($comp)) continue;
 
-    if ($competition && is_object($competition) && $date >= $season_start && $date <= $season_end) {
-        $filtered[] = [
-            'result'      => $result,
-            'competition' => $competition,
-        ];
+    $comp_date = get_field('competition_date', $comp->ID);
+    if (!$comp_date || $comp_date > $today) continue; // Skip upcoming events
+
+    $grouped[$comp->ID]['competition'] = $comp;
+    $grouped[$comp->ID]['results'][] = $result;
+}
+
+// Sort by competition date
+uasort($grouped, function ($a, $b) {
+    $dateA = get_field('competition_date', $a['competition']->ID);
+    $dateB = get_field('competition_date', $b['competition']->ID);
+    return strtotime($dateA) - strtotime($dateB);
+});
+
+// Display each group
+foreach ($grouped as $comp_data) {
+    $comp = $comp_data['competition'];
+    $comp_id = $comp->ID;
+    $comp_name = get_the_title($comp_id);
+    $comp_date = get_field('competition_date', $comp_id);
+    $comp_date_fmt = function_exists('coach_format_date') ? coach_format_date($comp_date) : $comp_date;
+
+    echo '<h3>' . esc_html($comp_name) . ' – ' . esc_html($comp_date_fmt) . '</h3>';
+
+    echo '<table class="widefat fixed striped">';
+    echo '<thead><tr>
+            <th>Skater</th>
+            <th>Level</th>
+            <th>Discipline</th>
+            <th>Placement</th>
+            <th>Total Score</th>
+            <th>Actions</th>
+        </tr></thead><tbody>';
+
+    foreach ($comp_data['results'] as $result) {
+        $skater = get_field('linked_skater', $result->ID);
+        $skater = is_array($skater) ? ($skater[0] ?? null) : $skater;
+
+        $placement = get_field('placement', $result->ID) ?: '—';
+        $level     = get_field('level', $result->ID) ?: '—';
+        $discipline = get_field('discipline', $result->ID) ?: '—';
+
+        // Total score logic
+        $total_field = get_field('total_score', $result->ID);
+        $total = $total_field['total_competition_score'] ?? null;
+
+        if (!$total) {
+            // Fallback to single segment if available
+            $segments = ['short_program_score', 'free_program_score', 'artistic_score'];
+            foreach ($segments as $key) {
+                if (!empty($total_field[$key])) {
+                    $total = $total_field[$key];
+                    break;
+                }
+            }
+        }
+
+        // Medal emoji
+        $medal = ($placement == 1) ? ' 🥇' : (($placement == 2) ? ' 🥈' : (($placement == 3) ? ' 🥉' : ''));
+
+        echo '<tr>';
+        echo '<td>' . esc_html($skater ? get_the_title($skater->ID) : '—') . '</td>';
+        echo '<td>' . esc_html($level) . '</td>';
+        echo '<td>' . esc_html($discipline) . '</td>';
+        echo '<td>' . esc_html($placement . $medal) . '</td>';
+        echo '<td>' . esc_html(is_numeric($total) ? number_format($total, 2) : '—') . '</td>';
+        echo '<td><a href="' . esc_url(get_permalink($result->ID)) . '">View</a> | <a href="' . esc_url(site_url('/edit-competition-result/' . $result->ID . '/')) . '">Update</a></td>';
+        echo '</tr>';
     }
+
+    echo '</tbody></table>';
 }
-
-if (empty($filtered)) {
-    echo '<p>No competition results in the current season.</p>';
-    return;
-}
-
-// Output table
-echo '<table class="widefat fixed striped">';
-echo '<thead><tr>
-        <th>Skater</th>
-        <th>Competition</th>
-        <th>Level</th>
-        <th>Discipline</th>
-        <th>Placement</th>
-        <th>TES</th>
-        <th>PCS</th>
-        <th>Deductions</th>
-        <th>Total</th>
-    </tr></thead><tbody>';
-
-foreach ($filtered as $entry) {
-    $result = $entry['result'];
-    $comp   = $entry['competition'];
-
-    $skater     = get_field('linked_skater', $result->ID);
-    $placement  = get_field('placement', $result->ID) ?: '—';
-    $level      = get_field('level', $result->ID) ?: '—';
-    $discipline = get_field('discipline', $result->ID) ?: '—';
-
-    $tes        = get_field('technical_element_scores', $result->ID);
-    $pcs        = get_field('program_component_scores', $result->ID);
-    $deductions = get_field('deduction_bonus', $result->ID);
-    $totals     = get_field('total_score', $result->ID);
-
-    echo '<tr>';
-    echo '<td>' . esc_html($skater ? get_the_title($skater->ID) : '—') . '</td>';
-    echo '<td>' . esc_html(get_the_title($comp->ID)) . '</td>';
-    echo '<td>' . esc_html($level) . '</td>';
-    echo '<td>' . esc_html($discipline) . '</td>';
-    echo '<td>' . esc_html($placement) . '</td>';
-    echo '<td>' . esc_html($tes['total'] ?? '—') . '</td>';
-    echo '<td>' . esc_html($pcs['total'] ?? '—') . '</td>';
-    echo '<td>' . esc_html($deductions['total'] ?? '—') . '</td>';
-    echo '<td>' . esc_html($totals['total'] ?? '—') . '</td>';
-    echo '</tr>';
-}
-
-echo '</tbody></table>';

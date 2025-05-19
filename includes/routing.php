@@ -14,14 +14,15 @@ function spd_add_custom_rewrite_rules() {
 
     // Create forms
     add_rewrite_rule('^create-goal/?$', 'index.php?create_goal=1', 'top');
-    add_rewrite_rule('^create-program/?$', 'index.php?create_program=1', 'top');
-    add_rewrite_rule('^create-meeting-log/?$', 'index.php?create_meeting_log=1', 'top');
     add_rewrite_rule('^create-injury-log/?$', 'index.php?create_injury_log=1', 'top');
+    add_rewrite_rule('^create-competition/?$', 'index.php?create_competition=1', 'top');
+    add_rewrite_rule('^create-competition-result/?$', 'index.php?create_competition_result=1', 'top');
 
     // Edit forms
     add_rewrite_rule('^edit-goal/?$', 'index.php?edit_goal=1', 'top');
     add_rewrite_rule('^edit-injury-log/([0-9]+)/?$', 'index.php?edit_injury_log=$matches[1]', 'top');
-
+    add_rewrite_rule('^edit-competition/([0-9]+)/?$', 'index.php?edit_competition=$matches[1]', 'top');
+    add_rewrite_rule('^edit-competition-result/([0-9]+)/?$', 'index.php?edit_competition_result=1&result_id=$matches[1]', 'top');
 }
 add_action('init', 'spd_add_custom_rewrite_rules');
 
@@ -38,6 +39,12 @@ function spd_add_query_vars($vars) {
     $vars[] = 'edit_goal';
     $vars[] = 'goal_id';
     $vars[] = 'injury_id';
+    $vars[] = 'create_competition';
+    $vars[] = 'edit_competition';
+    $vars[] = 'create_competition_result';
+    $vars[] = 'edit_competition_result';
+    $vars[] = 'result_id';
+
 
     return $vars;
 }
@@ -85,6 +92,31 @@ function spd_template_redirects() {
         include plugin_dir_path(__FILE__) . '/../templates/create/create-injury_log.php';
         exit;
     }
+    if (get_query_var('create_competition')) {
+    include plugin_dir_path(__FILE__) . '/../templates/create/create-competition.php';
+    exit;
+    }
+
+    if (get_query_var('create_competition_result')) {
+    include plugin_dir_path(__FILE__) . '/../templates/create/create-competition_result.php';
+    exit;
+    }
+    
+    if (get_query_var('edit_competition_result')) {
+        include plugin_dir_path(__FILE__) . '/../templates/create/create-competition_result.php';
+        exit;
+    }
+    
+
+if ($comp_id = get_query_var('edit_competition')) {
+    global $post;
+    $post = get_post($comp_id);
+    setup_postdata($post);
+
+    include plugin_dir_path(__FILE__) . '/../templates/create/create-competition.php';
+    exit;
+}
+
 }
 add_action('template_redirect', 'spd_template_redirects');
 

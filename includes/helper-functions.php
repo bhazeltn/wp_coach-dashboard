@@ -38,3 +38,34 @@ function coach_debug($data) {
         echo '</pre>';
     }
 }
+
+add_action('acf/save_post', 'spd_autotitle_competition_result', 20);
+function spd_autotitle_competition_result($post_id) {
+    if (get_post_type($post_id) !== 'competition_result') {
+        return;
+    }
+
+    // Only set if no title provided
+    $existing_title = get_post_field('post_title', $post_id);
+    if ($existing_title && $existing_title !== 'Auto Draft') {
+        return;
+    }
+
+    $skater = get_field('linked_skater', $post_id);
+    $comp   = get_field('linked_competition', $post_id);
+
+    $skater_name = is_array($skater) ? get_the_title($skater[0]) : ($skater ? get_the_title($skater) : '');
+    $comp_name   = is_array($comp)   ? get_the_title($comp[0])   : ($comp   ? get_the_title($comp)   : '');
+
+
+    if ($skater_name && $comp_name) {
+        $title = $comp_name . ' – ' . $skater_name;
+
+        // Update post title and slug
+        wp_update_post([
+            'ID'         => $post_id,
+            'post_title' => $title,
+            'post_name'  => sanitize_title($title)
+        ]);
+    }
+}

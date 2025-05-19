@@ -46,22 +46,22 @@ echo '</ul>';
 include plugin_dir_path(__FILE__) . '../sections/skater/injury-log.php';
 
 // SECTION 2: Yearly Plans
-include plugin_dir_path(__FILE__) . '../sections/skater/yearly-plans.php';
+// include plugin_dir_path(__FILE__) . '../sections/skater/yearly-plans.php';
 
 // SECTION 3: Weekly Plans
-include plugin_dir_path(__FILE__) . '../sections/skater/weekly-plans.php';
+// include plugin_dir_path(__FILE__) . '../sections/skater/weekly-plans.php';
 
 // SECTION 4: Goals
 include plugin_dir_path(__FILE__) . '../sections/skater/goals.php';
 
 // SECTION 5: Upcoming Competitions
-include plugin_dir_path(__FILE__) . '../sections/skater/competitions-upcoming.php';
+include plugin_dir_path(__FILE__) . '../sections/skater/competitions-results.php';
 
 // SECTION 6: Competition Results
-include plugin_dir_path(__FILE__) . '../sections/skater/competition-results.php';
+include plugin_dir_path(__FILE__) . '../sections/skater/competitions-upcoming.php';
 
 // SECTION 7: Session Logs
-include plugin_dir_path(__FILE__) . '../sections/skater/session-logs.php';
+// include plugin_dir_path(__FILE__) . '../sections/skater/session-logs.php';
 
 // SECTION 8: Missed or Stalled Goals
 include plugin_dir_path(__FILE__) . '../sections/skater/missed-goals.php';

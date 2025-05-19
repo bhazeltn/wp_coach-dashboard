@@ -1,29 +1,19 @@
 <?php
-// --- Upcoming Competitions ---
+// --- Skater-Specific: Upcoming Competitions ---
+
 $skater_id = $GLOBALS['skater_id'] ?? null;
 
 echo '<h2>Upcoming Competitions</h2>';
 
-// Step 1: Get upcoming competitions (today or later)
+if (!$skater_id) {
+    echo '<p>No skater selected.</p>';
+    return;
+}
+
 $today = date('Y-m-d');
 
-$upcoming = get_posts([
-    'post_type'   => 'competition',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-    'meta_key'    => 'date',
-    'orderby'     => 'meta_value',
-    'order'       => 'ASC',
-    'meta_query'  => [[
-        'key'     => 'date',
-        'value'   => $today,
-        'compare' => '>=',
-        'type'    => 'DATE',
-    ]]
-]);
-
-// Step 2: Get all competition_result entries for this skater
-$skater_results = get_posts([
+// Get all competition_result posts for this skater
+$results = get_posts([
     'post_type'   => 'competition_result',
     'numberposts' => -1,
     'post_status' => 'publish',
@@ -34,31 +24,47 @@ $skater_results = get_posts([
     ]]
 ]);
 
-// Step 3: Extract all linked competition IDs from results
-$linked_ids = [];
+$upcoming = [];
 
-foreach ($skater_results as $result) {
-    $linked = get_field('linked_competition', $result->ID);
-    $comp   = is_array($linked) ? ($linked[0] ?? null) : $linked;
+foreach ($results as $r) {
+    $comp = get_field('linked_competition', $r->ID);
+    $comp = is_array($comp) ? ($comp[0] ?? null) : $comp;
 
     if ($comp && is_object($comp)) {
-        $linked_ids[] = $comp->ID;
+        $date = get_field('competition_date', $comp->ID);
+        if ($date && $date >= $today) {
+            $upcoming[] = [
+                'result'      => $r,
+                'competition' => $comp,
+            ];
+        }
     }
 }
 
-// Step 4: Filter to competitions the skater is linked to
-$filtered = array_filter($upcoming, fn($comp) => in_array($comp->ID, $linked_ids));
+if ($upcoming) {
+    echo '<table class="widefat fixed striped">';
+    echo '<thead><tr><th>Name</th><th>Date</th><th>Level</th><th>Discipline</th><th>Location</th></tr></thead><tbody>';
 
-if ($filtered) {
-    echo '<ul>';
-    foreach ($filtered as $comp) {
-        $date     = get_field('date', $comp->ID) ?: '—';
-        $location = get_field('location', $comp->ID);
-        echo '<li>' . esc_html(get_the_title($comp->ID)) .
-            ' – ' . esc_html($date) .
-            ($location ? ' @ ' . esc_html($location) : '') . '</li>';
+    foreach ($upcoming as $entry) {
+        $r = $entry['result'];
+        $c = $entry['competition'];
+
+        $name       = get_the_title($c->ID);
+        $date       = get_field('competition_date', $c->ID) ?: '—';
+        $level      = get_field('level', $r->ID) ?: '—';
+        $discipline = get_field('discipline', $r->ID) ?: '—';
+        $location   = get_field('competition_location', $c->ID) ?: '—';
+
+        echo '<tr>';
+        echo '<td>' . esc_html($name) . '</td>';
+        echo '<td>' . esc_html($date) . '</td>';
+        echo '<td>' . esc_html($level) . '</td>';
+        echo '<td>' . esc_html($discipline) . '</td>';
+        echo '<td>' . esc_html($location) . '</td>';
+        echo '</tr>';
     }
-    echo '</ul>';
+
+    echo '</tbody></table>';
 } else {
     echo '<p>No upcoming competitions found.</p>';
 }
