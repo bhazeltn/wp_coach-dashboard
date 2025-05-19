@@ -18,6 +18,7 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^create-competition/?$', 'index.php?create_competition=1', 'top');
     add_rewrite_rule('^create-competition-result/?$', 'index.php?create_competition_result=1', 'top');
     add_rewrite_rule('^create-meeting-log/?$', 'index.php?create_meeting_log=1', 'top');
+    add_rewrite_rule('^create-session-log/?$', 'index.php?create_session_log=1', 'top');
 
     // Edit forms
     add_rewrite_rule('^edit-goal/?$', 'index.php?edit_goal=1', 'top');
@@ -25,6 +26,8 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^edit-competition/([0-9]+)/?$', 'index.php?edit_competition=$matches[1]', 'top');
     add_rewrite_rule('^edit-competition-result/([0-9]+)/?$', 'index.php?edit_competition_result=1&result_id=$matches[1]', 'top');
     add_rewrite_rule('^edit-meeting-log/([0-9]+)/?$', 'index.php?edit_meeting_log=$matches[1]', 'top');
+    add_rewrite_rule('^edit-session-log/([0-9]+)/?$', 'index.php?edit_session_log=$matches[1]', 'top');
+
 }
 add_action('init', 'spd_add_custom_rewrite_rules');
 
@@ -48,8 +51,9 @@ function spd_add_query_vars($vars) {
     $vars[] = 'result_id';
     $vars[] = 'edit_meeting_log';
     $vars[] = 'meeting_log_id';
-
-
+    $vars[] = 'create_session_log';
+    $vars[] = 'edit_session_log';
+    $vars[] = 'session_log_id';
 
     return $vars;
 }
@@ -116,6 +120,17 @@ function spd_template_redirects() {
         include plugin_dir_path(__FILE__) . '/../templates/create/create-competition_result.php';
         exit;
     }
+
+    if (get_query_var('create_session_log')) {
+        include plugin_dir_path(__FILE__) . '/../templates/create/create-session_log.php';
+        exit;
+    }
+    
+    if (get_query_var('edit_session_log')) {
+        include plugin_dir_path(__FILE__) . '/../templates/create/create-session_log.php';
+        exit;
+    }
+    
     
    if ($comp_id = get_query_var('edit_competition')) {
     global $post;

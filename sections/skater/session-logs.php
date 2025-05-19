@@ -1,58 +1,62 @@
 <?php
-// --- Session Logs (This Month) ---
-$skater_id = $GLOBALS['skater_id'] ?? null;
+$skater_id = $GLOBALS['skater_id'];
 
-echo '<h2>Session Logs (This Month)</h2>';
-echo '<p><a class="button" href="' . admin_url('post-new.php?post_type=session_log') . '">Add Session Log</a></p>';
-
-// Current month range
-$month_start = date('Y-m-01');
-$month_end   = date('Y-m-t');
-
-// Get session logs for this skater in the current month
-$logs = get_posts([
-    'post_type'   => 'session_log',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-    'meta_key'    => 'date',
-    'orderby'     => 'meta_value',
-    'order'       => 'DESC',
-    'meta_query'  => [
+$sessions = new WP_Query([
+    'post_type'      => 'session_log',
+    'posts_per_page' => 10,
+    'meta_key'       => 'session_date',
+    'orderby'        => 'meta_value',
+    'order'          => 'DESC',
+    'meta_query'     => [
         [
-            'key'     => 'linked_skater',
+            'key'     => 'skater',
             'value'   => '"' . $skater_id . '"',
             'compare' => 'LIKE',
         ],
-        [
-            'key'     => 'date',
-            'value'   => [$month_start, $month_end],
-            'compare' => 'BETWEEN',
-            'type'    => 'DATE',
-        ]
     ],
 ]);
 
-if ($logs) {
-    echo '<table class="widefat fixed striped">';
-    echo '<thead><tr>
-            <th>Date</th>
-            <th>Weekly Plan</th>
-            <th>Notes</th>
-        </tr></thead><tbody>';
+echo '<div class="dashboard-section">';
+echo '<h2>Recent Session Logs</h2>';
+echo '<p><a class="button" href="' . esc_url(site_url('/create-session-log/?skater_id=' . $skater_id)) . '">+ Add Session Log</a></p>';
 
-    foreach ($logs as $log) {
-        $date  = get_field('date', $log->ID) ?: '—';
-        $plan  = get_field('linked_weekly_plan', $log->ID);
-        $notes = get_field('session_notes', $log->ID);
+if ($sessions->have_posts()) {
+    echo '<table class="dashboard-table">';
+    echo '<thead><tr>';
+    echo '<th>Date</th>';
+    echo '<th>Energy</th>';
+    echo '<th>Wellbeing</th>';
+    echo '<th>Actions</th>';
+    echo '</tr></thead>';
+    echo '<tbody>';
 
-        echo '<tr>
-            <td>' . esc_html($date) . '</td>
-            <td>' . esc_html(is_object($plan) ? get_the_title($plan->ID) : '—') . '</td>
-            <td>' . esc_html(wp_trim_words($notes ?: '—', 20)) . '</td>
-        </tr>';
+    while ($sessions->have_posts()) {
+        $sessions->the_post();
+
+        $date_raw = get_field('session_date');
+        $date_obj = DateTime::createFromFormat('d/m/Y', $date_raw);
+        $formatted_date = $date_obj ? $date_obj->format('M j, Y') : esc_html($date_raw);
+
+        $energy = get_field('energy__stamina');
+        $wellbeing = get_field('wellbeing__focus_check-in');
+        if (is_array($wellbeing)) {
+            $wellbeing = implode(', ', $wellbeing);
+        }
+
+        echo '<tr>';
+        echo '<td>' . esc_html($formatted_date) . '</td>';
+        echo '<td>' . esc_html($energy) . '</td>';
+        echo '<td>' . esc_html($wellbeing) . '</td>';
+        echo '<td>';
+        echo '<a class="button-small" href="' . esc_url(get_permalink()) . '">View</a> | ';
+        echo '<a class="button-small" href="' . esc_url(site_url('/edit-session-log/' . get_the_ID())) . '">Update</a>';
+        echo '</td>';
+        echo '</tr>';
     }
 
     echo '</tbody></table>';
+    wp_reset_postdata();
 } else {
-    echo '<p>No session logs found for this month.</p>';
+    echo '<p>No session logs recorded yet.</p>';
 }
+echo '</div>';

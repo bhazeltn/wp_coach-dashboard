@@ -61,7 +61,7 @@ include plugin_dir_path(__FILE__) . '../sections/skater/competitions-results.php
 include plugin_dir_path(__FILE__) . '../sections/skater/competitions-upcoming.php';
 
 // SECTION 7: Session Logs
-// include plugin_dir_path(__FILE__) . '../sections/skater/session-logs.php';
+include plugin_dir_path(__FILE__) . '../sections/skater/session-logs.php';
 
 // Section  : Meetings 
 include plugin_dir_path(__FILE__) . '../sections/skater/meeting-upcoming.php';
