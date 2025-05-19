@@ -63,6 +63,10 @@ include plugin_dir_path(__FILE__) . '../sections/skater/competitions-upcoming.ph
 // SECTION 7: Session Logs
 // include plugin_dir_path(__FILE__) . '../sections/skater/session-logs.php';
 
+// Section  : Meetings 
+include plugin_dir_path(__FILE__) . '../sections/skater/meeting-upcoming.php';
+
+
 // SECTION 8: Missed or Stalled Goals
 include plugin_dir_path(__FILE__) . '../sections/skater/missed-goals.php';
 

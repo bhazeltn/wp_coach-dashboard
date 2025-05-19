@@ -1,61 +1,66 @@
 <?php
 /**
- * Template for displaying a single Meeting Log
+ * Template: View Single Meeting Log
  */
 
 get_header();
-the_post();
+echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
 
-$meeting_id    = get_the_ID();
-$date          = get_field('meeting_date', $meeting_id);
-$attendees     = get_field('attendees', $meeting_id);
-$summary       = get_field('summary', $meeting_id);
-$actions       = get_field('action_items', $meeting_id);
-$edit_link     = get_edit_post_link($meeting_id);
-
-// Format date
-$formatted_date = $date && function_exists('coach_format_date') ? coach_format_date($date) : $date;
-
-echo '<div class="wrap coach-dashboard single-meeting-log">';
-
-// Title & Edit
-echo '<h1>' . esc_html(get_the_title()) . '</h1>';
-if ($edit_link) {
-    echo '<p><a class="button small" href="' . esc_url($edit_link) . '">Edit Meeting Log</a></p>';
+if (!is_user_logged_in()) {
+    auth_redirect();
 }
 
-// Date
-echo '<p><strong>Date:</strong> ' . esc_html($formatted_date ?: '—') . '</p>';
+global $post;
+setup_postdata($post);
 
-// Attendees
-if ($attendees) {
-    echo '<h2>Attendees</h2><ul>';
-    foreach ($attendees as $person) {
-        echo '<li>' . esc_html($person) . '</li>';
-    }
-    echo '</ul>';
-}
+// Fields
+$skaters = get_field('skater');
+$meeting_date_raw = get_field('meeting_date');
 
-// Summary
-if ($summary) {
-    echo '<h2>Meeting Summary</h2><p>' . nl2br(esc_html($summary)) . '</p>';
-}
-
-// Action Items
-if ($actions) {
-    echo '<h2>Action Items</h2><ul>';
-    foreach ($actions as $item) {
-        echo '<li>' . esc_html($item['description'] ?? '—');
-        if (!empty($item['assigned_to'])) {
-            echo ' <em>(Assigned to: ' . esc_html($item['assigned_to']) . ')</em>';
-        }
-        echo '</li>';
-    }
-    echo '</ul>';
+if (!empty($meeting_date_raw)) {
+    $date_obj = DateTime::createFromFormat('d/m/Y', $meeting_date_raw);
+    $formatted_date = $date_obj ? $date_obj->format('F j, Y') : '';
 } else {
-    echo '<p><em>No action items recorded.</em></p>';
+    $formatted_date = '';
 }
 
+$meeting_type = get_field('meeting_type');
+if (is_array($meeting_type)) {
+    $meeting_type = implode(', ', $meeting_type);
+}
+
+$participants = get_field('participants');
+$summary = get_field('summary_notes');
+
+echo '<div class="wrap coach-dashboard">';
+echo '<h1>' . esc_html(get_the_title()) . '</h1>';
+
+echo '<div class="dashboard-box">';
+
+echo '<p><strong>Date:</strong> ' . esc_html($formatted_date) . '</p>';
+echo '<p><strong>Meeting Type:</strong> ' . esc_html($meeting_type) . '</p>';
+
+if ($skaters && is_array($skaters)) {
+    echo '<p><strong>Skater(s):</strong> ';
+    $links = [];
+    foreach ($skaters as $skater) {
+        $links[] = '<a href="' . esc_url(site_url('/skater/' . $skater->post_name)) . '">' . esc_html(get_the_title($skater)) . '</a>';
+    }
+    echo implode(', ', $links);
+    echo '</p>';
+}
+
+if (!empty($participants)) {
+    echo '<p><strong>Participants:</strong> ' . esc_html($participants) . '</p>';
+}
+
+if (!empty($summary)) {
+    echo '<h3>Summary / Notes</h3>';
+    echo '<div class="dashboard-notes">' . wpautop(esc_html($summary)) . '</div>';
+}
+
+echo '</div>';
+echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">Back to Dashboard</a></p>';
 echo '</div>';
 
 get_footer();

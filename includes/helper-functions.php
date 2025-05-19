@@ -68,4 +68,16 @@ function spd_autotitle_competition_result($post_id) {
             'post_name'  => sanitize_title($title)
         ]);
     }
+
+    add_action('acf/save_post', function ($post_id) {
+        if (get_post_type($post_id) !== 'meeting_log') return;
+
+        $title = get_field('meeting_title', $post_id);
+        if ($title) {
+            wp_update_post([
+                'ID' => $post_id,
+                'post_title' => sanitize_text_field($title),
+            ]);
+        }
+    });
 }
