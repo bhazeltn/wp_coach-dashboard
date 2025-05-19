@@ -21,6 +21,8 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^create-session-log/?$', 'index.php?create_session_log=1', 'top');
     add_rewrite_rule('^create-weekly-plan/?$', 'index.php?create_weekly_plan=1', 'top');
     add_rewrite_rule('^create-yearly-plan/?$', 'index.php?create_yearly_plan=1', 'top');
+    add_rewrite_rule('^create-program/?$', 'index.php?create_program=1', 'top');
+    add_rewrite_rule('^edit-program/([0-9]+)/?$', 'index.php?edit_program=$matches[1]', 'top');
 
     // Edit forms
     add_rewrite_rule('^edit-goal/?$', 'index.php?edit_goal=1', 'top');
@@ -65,8 +67,10 @@ function spd_add_query_vars($vars) {
     $vars[] = 'create_yearly_plan';
     $vars[] = 'edit_yearly_plan';
     $vars[] = 'yearly_plan_id';
-
-
+    $vars[] = 'create_program';
+    $vars[] = 'edit_program';
+    $vars[] = 'program_view';
+    $vars[] = 'program_id';
 
     return $vars;
 }
@@ -161,6 +165,20 @@ function spd_template_redirects() {
     
     if (get_query_var('edit_yearly_plan')) {
         include plugin_dir_path(__FILE__) . '/../templates/create/create-yearly_plan.php';
+        exit;
+    }
+
+    if (get_query_var('create_program')) {
+        include plugin_dir_path(__DIR__) . '/templates/create/create-program.php';
+        exit;
+    }
+    
+    if ($program_id = get_query_var('edit_program')) {
+        global $post;
+        $post = get_post($program_id);
+        setup_postdata($post);
+    
+        include plugin_dir_path(__FILE__) . '/../templates/create/create-program.php';
         exit;
     }
     

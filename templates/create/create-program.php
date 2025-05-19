@@ -1,28 +1,53 @@
 <?php
 /**
- * Template for creating a new Program using ACF form block
+ * Template: Create or Edit Program
  */
 
 acf_form_head();
 get_header();
+echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
 
-$field_group_key = 'group_682426973af85'; // ✅ Program Details
+// Get post ID if editing
+$post_id = get_query_var('edit_program');
+$is_edit = $post_id && is_numeric($post_id);
 
-echo '<div class="wrap coach-dashboard create-program">';
-echo '<h1>Create New Program</h1>';
-echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">Cancel</a></p>';
+if (!is_user_logged_in()) {
+    auth_redirect();
+}
+
+// Get skater (from post or prefill)
+$skater = $is_edit ? get_field('skater', $post_id) : null;
+$skater_slug = $skater ? $skater->post_name : null;
+
+$prefill_skater_id = !$is_edit
+    ? ($_GET['skater_id'] ?? ($GLOBALS['skater_id'] ?? null))
+    : null;
+
+// Prefill logic for skater dropdown
+add_filter('acf/load_field/name=skater', function ($field) use ($prefill_skater_id) {
+    if ($prefill_skater_id) {
+        $field['default_value'] = $prefill_skater_id;
+    }
+    return $field;
+});
+
+echo '<div class="wrap coach-dashboard">';
+echo '<h1>' . ($is_edit ? 'Update Program' : 'Create New Program') . '</h1>';
 
 acf_form([
-    'post_id'         => 'new_post',
-    'new_post'        => [
+    'post_id'      => $is_edit ? intval($post_id) : 'new_post',
+    'post_title'   => true,
+    'post_content' => false,
+    'field_groups' => ['group_682426973af85'], // Program Details
+    'new_post'     => [
         'post_type'   => 'program',
         'post_status' => 'publish',
     ],
-    'field_groups'    => [$field_group_key],
-    'submit_value'    => 'Create Program',
-    'uploader'        => 'wp',
+    'submit_value' => $is_edit ? 'Update Program' : 'Create Program',
+    'return'       => $skater_slug
+        ? site_url('/skater/' . $skater_slug . '/')
+        : site_url('/coach-dashboard'),
 ]);
 
 echo '</div>';
-
 get_footer();

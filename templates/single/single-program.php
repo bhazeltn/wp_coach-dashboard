@@ -1,91 +1,106 @@
 <?php
 /**
- * Template for displaying a single Program
+ * Template: Single Program View
  */
 
 get_header();
-the_post();
+echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
 
-$program_id    = get_the_ID();
-$skater_id     = get_field('skater');
-$season        = get_field('season');
-$discipline    = get_field('discipline');
-$level         = get_field('level');
-$type          = get_field('program_type');
-$edit_link     = get_edit_post_link($program_id);
+global $post;
+setup_postdata($post);
 
-// Music fields
-$title         = get_field('music_title');
-$composer      = get_field('composer');
-$performer     = get_field('performer');
-$music_file    = get_field('music'); // New ACF file field
+$post_id = get_the_ID();
+$title = get_the_title($post_id);
 
-// Choreo
-$choreographer = get_field('choreographer');
-$start_date    = get_field('start_date');
-$start_date_fmt = $start_date && function_exists('coach_format_date') ? coach_format_date($start_date) : $start_date;
+$skater = get_field('skater', $post_id)[0] ?? null;
+$skater_name = $skater ? get_the_title($skater) : '—';
+$season = get_field('season', $post_id) ?? '—';
+$category = get_field('program_category', $post_id) ?? '—';
 
-// Layout & Notes
-$layout        = get_field('layout_notes');
-$content       = get_field('planned_content');
-$notes         = get_field('notes');
+$content = get_field('planned_program_content', $post_id);
+$music = get_field('music_selections', $post_id);
+$outfits = get_field('outfit_photos', $post_id);
+$revisions = get_field('revision_log', $post_id);
+$coach_notes = get_field('coach_notes', $post_id);
+$skater_notes = get_field('skater_notes', $post_id);
+?>
 
-// Skater info
-$skater_link = $skater_id ? site_url('/skater/' . get_post_field('post_name', $skater_id)) : null;
-$skater_name = $skater_id ? get_the_title($skater_id) : '—';
+<div class="wrap coach-dashboard">
+    <h1><?= esc_html($title) ?></h1>
 
-echo '<div class="wrap coach-dashboard single-program">';
+    <div class="dashboard-box">
+        <p><strong>Skater:</strong> <?= esc_html($skater_name) ?></p>
+        <p><strong>Season:</strong> <?= esc_html($season) ?></p>
+        <p><strong>Program Type:</strong> <?= esc_html($category) ?></p>
+    </div>
 
-// Back to skater
-if ($skater_link) {
-    echo '<p><a class="button" href="' . esc_url($skater_link) . '">← Back to Skater</a></p>';
-}
+    <hr>
+    <div class="dashboard-box">
+        <h3>⛸ Planned Program Content</h3>
+        <?php if (!empty($content)) : ?>
+            <ul>
+                <?php foreach ($content as $item) : ?>
+                    <li><?= esc_html($item['element']) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php else : ?>
+            <p><em>No layout submitted yet.</em></p>
+        <?php endif; ?>
+    </div>
 
-// Heading
-echo '<h1>' . esc_html(get_the_title()) . '</h1>';
-if ($edit_link) {
-    echo '<p><a class="button small" href="' . esc_url($edit_link) . '">Edit Program</a></p>';
-}
+    <hr>
+    <div class="dashboard-box">
+        <h3>🎵 Music Selection</h3>
+        <?php if (!empty($music)) : ?>
+            <ul>
+                <?php foreach ($music as $track) : ?>
+                    <li><?= esc_html($track['track'] ?? '—') ?> by <?= esc_html($track['artist'] ?? '—') ?></li>
+                <?php endforeach; ?>
+            </ul>
+        <?php else : ?>
+            <p><em>No music listed.</em></p>
+        <?php endif; ?>
+    </div>
 
-// Overview
-echo '<p><strong>Skater:</strong> ' . esc_html($skater_name) . '</p>';
-echo '<p><strong>Season:</strong> ' . esc_html($season ?: '—') . '</p>';
-echo '<p><strong>Discipline:</strong> ' . esc_html($discipline ?: '—') . ' | <strong>Level:</strong> ' . esc_html($level ?: '—') . '</p>';
-echo '<p><strong>Program Type:</strong> ' . esc_html($type ?: '—') . '</p>';
+    <hr>
+    <div class="dashboard-box">
+        <h3>👗 Outfit</h3>
+        <?php if (!empty($outfits)) : ?>
+            <?php foreach ($outfits as $img_id) :
+                $url = wp_get_attachment_image_url($img_id, 'medium'); ?>
+                <img src="<?= esc_url($url) ?>" alt="" style="max-width: 200px; margin-right: 10px;">
+            <?php endforeach; ?>
+        <?php else : ?>
+            <p><em>No outfit photos uploaded.</em></p>
+        <?php endif; ?>
+    </div>
 
-// Music
-echo '<hr><h2>Music</h2>';
-echo '<ul>';
-echo '<li><strong>Title:</strong> ' . esc_html($title ?: '—') . '</li>';
-echo '<li><strong>Composer:</strong> ' . esc_html($composer ?: '—') . '</li>';
-echo '<li><strong>Performer:</strong> ' . esc_html($performer ?: '—') . '</li>';
-if ($music_file && is_array($music_file)) {
-    echo '<li><strong>File:</strong> <a href="' . esc_url($music_file['url']) . '" target="_blank" rel="noopener">Download / Play</a></li>';
-} else {
-    echo '<li><strong>File:</strong> —</li>';
-}
-echo '</ul>';
+    <hr>
+    <div class="dashboard-box">
+        <h3>📝 Revision Log</h3>
+        <?php if (!empty($revisions)) : ?>
+            <ul>
+                <?php foreach ($revisions as $entry) : ?>
+                    <li>
+                        <?= esc_html($entry['revision_date']) ?>:
+                        <?= esc_html($entry['change_notes']) ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php else : ?>
+            <p><em>No revisions recorded.</em></p>
+        <?php endif; ?>
+    </div>
 
-// Choreography
-echo '<hr><h2>Choreography</h2>';
-echo '<ul>';
-echo '<li><strong>Choreographer:</strong> ' . esc_html($choreographer ?: '—') . '</li>';
-echo '<li><strong>Start Date:</strong> ' . esc_html($start_date_fmt ?: '—') . '</li>';
-echo '</ul>';
+    <hr>
+    <div class="dashboard-box">
+        <h3>📓 Notes</h3>
+        <p><strong>Coach:</strong><br><?= wp_kses_post($coach_notes ?: '<em>None provided.</em>') ?></p>
+        <p><strong>Skater:</strong><br><?= wp_kses_post($skater_notes ?: '<em>None provided.</em>') ?></p>
+    </div>
 
-// Layout & Content
-if ($layout) {
-    echo '<h3>Layout Notes</h3><p>' . nl2br(esc_html($layout)) . '</p>';
-}
-if ($content) {
-    echo '<h3>Planned Content</h3><p>' . nl2br(esc_html($content)) . '</p>';
-}
+    <p><a class="button" href="<?= esc_url(site_url('/edit-program/' . $post_id)) ?>">Edit Program</a></p>
+    <p><a class="button" href="<?= esc_url($skater ? '/skater/' . $skater->post_name . '/' : '/coach-dashboard') ?>">Back</a></p>
+</div>
 
-// Notes
-if ($notes) {
-    echo '<hr><h2>Notes</h2><p>' . nl2br(esc_html($notes)) . '</p>';
-}
-
-echo '</div>';
-
-get_footer();
+<?php get_footer(); ?>

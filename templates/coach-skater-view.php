@@ -60,6 +60,9 @@ include plugin_dir_path(__FILE__) . '../sections/skater/competitions-results.php
 // SECTION 6: Competition Results
 include plugin_dir_path(__FILE__) . '../sections/skater/competitions-upcoming.php';
 
+// Section  : Programs
+include plugin_dir_path(__FILE__) . '../sections/skater/programs.php';
+
 // SECTION 7: Session Logs
 include plugin_dir_path(__FILE__) . '../sections/skater/session-logs.php';
 
