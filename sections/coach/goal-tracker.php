@@ -38,7 +38,7 @@ $long_goals = get_posts([
     'meta_query'  => [
         [
             'key'     => 'goal_timeframe',
-            'value'   => ['Long-Term (> 1 year)', 'Medium-Term (2–6 months)', 'Seasonal'],
+            'value'   => ['long', 'medium', 'season'],
             'compare' => 'IN'
         ],
         [
@@ -95,9 +95,10 @@ $weekly_goals = get_posts([
     'meta_query'  => [
         [
             'key'     => 'goal_timeframe',
-            'value'   => ['Weekly', 'Microcycle'],
+            'value'   => ['week', 'micro'],
             'compare' => 'IN'
         ],
+       
         [
             'key'     => 'target_date',
             'value'   => [

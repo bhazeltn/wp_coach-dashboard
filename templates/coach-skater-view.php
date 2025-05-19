@@ -46,7 +46,7 @@ echo '</ul>';
 include plugin_dir_path(__FILE__) . '../sections/skater/injury-log.php';
 
 // SECTION 2: Yearly Plans
-// include plugin_dir_path(__FILE__) . '../sections/skater/yearly-plans.php';
+include plugin_dir_path(__FILE__) . '../sections/skater/yearly-plans-summary.php';
 
 // SECTION 3: Weekly Plans
 include plugin_dir_path(__FILE__) . '../sections/skater/weekly-plans-tracker.php';

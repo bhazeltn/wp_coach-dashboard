@@ -1,58 +1,95 @@
 <?php
-// --- Coach Dashboard: Yearly Plan Summary ---
+// --- Coach Dashboard: Yearly Training Plans Summary ---
 
-echo '<h2>Yearly Plan Summary</h2>';
+echo '<div class="dashboard-section">';
+echo '<h2>Yearly Training Plans</h2>';
 
-$plans = get_posts([
-    'post_type'   => 'yearly_plan',
+$today = date('Ymd');
+$near_future = date('Ymd', strtotime('+30 days'));
+
+$skaters = get_posts([
+    'post_type'   => 'skater',
     'numberposts' => -1,
     'post_status' => 'publish',
+    'orderby'     => 'title',
+    'order'       => 'ASC',
 ]);
 
-if (empty($plans)) {
-    echo '<p>No yearly plans found.</p>';
+if (!$skaters) {
+    echo '<p>No skaters found.</p>';
+    echo '</div>';
     return;
 }
 
-echo '<table class="widefat fixed striped">';
-echo '<thead>
-    <tr>
-        <th>Season</th>
-        <th>Skater(s)</th>
-        <th>Start – End</th>
-        <th>Peak Type</th>
-        <th>Primary Goal</th>
-    </tr>
-</thead><tbody>';
+foreach ($skaters as $skater) {
+    $skater_id = $skater->ID;
+    $plans = get_posts([
+        'post_type'   => 'yearly_plan',
+        'numberposts' => -1,
+        'post_status' => 'publish',
+        'meta_key'    => 'season_dates_start_date',
+        'orderby'     => 'meta_value',
+        'order'       => 'DESC',
+        'meta_query'  => [[
+            'key'     => 'skater',
+            'value'   => '"' . $skater_id . '"',
+            'compare' => 'LIKE',
+        ]],
+    ]);
 
-foreach ($plans as $plan) {
-    $plan_id     = $plan->ID;
-    $title       = get_the_title($plan_id);
-    $edit_link   = get_edit_post_link($plan_id);
-    $season_link = '<a href="' . esc_url($edit_link) . '">' . esc_html($title) . '</a>';
+    $current = null;
+    $upcoming = null;
 
-    $skaters = get_field('linked_skaters', $plan_id);
-    $skater_names = '—';
-    if ($skaters && is_array($skaters)) {
-        $names = array_map(fn($s) => get_the_title($s->ID), $skaters);
-        $skater_names = implode(', ', array_map('esc_html', $names));
+    foreach ($plans as $plan) {
+        $dates = get_field('season_dates', $plan->ID);
+        if ($dates && isset($dates['start_date'], $dates['end_date'])) {
+            $start = DateTime::createFromFormat('d/m/Y', $dates['start_date'])?->format('Ymd');
+            $end   = DateTime::createFromFormat('d/m/Y', $dates['end_date'])?->format('Ymd');
+
+            if ($start && $end) {
+                if ($today >= $start && $today <= $end) {
+                    $current = $plan;
+                } elseif ($start <= $near_future && $start > $today) {
+                    $upcoming = $plan;
+                }
+            }
+        }
     }
 
-    $dates = get_field('season_dates', $plan_id);
-    $start = isset($dates['start_date']) ? (function_exists('coach_format_date') ? coach_format_date($dates['start_date']) : $dates['start_date']) : '—';
-    $end   = isset($dates['end_date'])   ? (function_exists('coach_format_date') ? coach_format_date($dates['end_date'])   : $dates['end_date'])   : '—';
+    if (!$current && !$upcoming) continue;
 
-    $peak_type = get_field('peak_planning_peak_type', $plan_id) ?: '—';
-    $goal_raw  = get_field('primary_goal', $plan_id);
-    $primary_goal = $goal_raw ? wp_trim_words(strip_tags($goal_raw), 12) : '—';
+    echo '<h3>' . esc_html(get_the_title($skater)) . '</h3>';
+    echo '<table class="dashboard-table">';
+    echo '<thead><tr><th>Season</th><th>Peak Type</th><th>Primary Peak</th><th>Goal</th><th>Actions</th></tr></thead><tbody>';
 
-    echo '<tr>';
-    echo '<td>' . $season_link . '</td>';
-    echo '<td>' . esc_html($skater_names) . '</td>';
-    echo '<td>' . esc_html($start) . ' – ' . esc_html($end) . '</td>';
-    echo '<td>' . esc_html($peak_type) . '</td>';
-    echo '<td>' . esc_html($primary_goal) . '</td>';
-    echo '</tr>';
+    foreach ([$current, $upcoming] as $plan) {
+        if (!$plan) continue;
+
+        $dates = get_field('season_dates', $plan->ID);
+        $peak  = get_field('peak_planning', $plan->ID);
+        $goal  = get_field('primary_season_goal', $plan->ID);
+        $view  = get_permalink($plan->ID);
+        $edit  = site_url('/edit-yearly-plan/' . $plan->ID);
+
+        $start_fmt = $dates['start_date'] ? DateTime::createFromFormat('d/m/Y', $dates['start_date'])?->format('M j, Y') : '—';
+        $end_fmt   = $dates['end_date']   ? DateTime::createFromFormat('d/m/Y', $dates['end_date'])?->format('M j, Y') : '—';
+        $season    = $start_fmt . ' – ' . $end_fmt;
+
+        $peak_type = $peak['peak_type'] ?? '—';
+        $primary_peak = isset($peak['primary_peak_event'][0]) ? get_the_title($peak['primary_peak_event'][0]) : '—';
+        $goal_summary = $goal ? wp_trim_words(strip_tags($goal), 20, '...') : '—';
+
+        echo '<tr>';
+        echo '<td>' . esc_html($season) . '</td>';
+        echo '<td>' . esc_html($peak_type) . '</td>';
+        echo '<td>' . esc_html($primary_peak) . '</td>';
+        echo '<td>' . esc_html($goal_summary) . '</td>';
+        echo '<td><a class="button-small" href="' . esc_url($view) . '">View</a> | ';
+        echo '<a class="button-small" href="' . esc_url($edit) . '">Edit</a></td>';
+        echo '</tr>';
+    }
+
+    echo '</tbody></table>';
 }
 
-echo '</tbody></table>';
+echo '</div>';

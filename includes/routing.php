@@ -20,6 +20,7 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^create-meeting-log/?$', 'index.php?create_meeting_log=1', 'top');
     add_rewrite_rule('^create-session-log/?$', 'index.php?create_session_log=1', 'top');
     add_rewrite_rule('^create-weekly-plan/?$', 'index.php?create_weekly_plan=1', 'top');
+    add_rewrite_rule('^create-yearly-plan/?$', 'index.php?create_yearly_plan=1', 'top');
 
     // Edit forms
     add_rewrite_rule('^edit-goal/?$', 'index.php?edit_goal=1', 'top');
@@ -29,6 +30,8 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^edit-meeting-log/([0-9]+)/?$', 'index.php?edit_meeting_log=$matches[1]', 'top');
     add_rewrite_rule('^edit-session-log/([0-9]+)/?$', 'index.php?edit_session_log=$matches[1]', 'top');
     add_rewrite_rule('^edit-weekly-plan/([0-9]+)/?$', 'index.php?edit_weekly_plan=$matches[1]', 'top');
+    add_rewrite_rule('^edit-yearly-plan/([0-9]+)/?$', 'index.php?edit_yearly_plan=$matches[1]', 'top');
+
 
 }
 add_action('init', 'spd_add_custom_rewrite_rules');
@@ -59,6 +62,10 @@ function spd_add_query_vars($vars) {
     $vars[] = 'create_weekly_plan';
     $vars[] = 'edit_weekly_plan';
     $vars[] = 'weekly_plan_id';
+    $vars[] = 'create_yearly_plan';
+    $vars[] = 'edit_yearly_plan';
+    $vars[] = 'yearly_plan_id';
+
 
 
     return $vars;
@@ -99,7 +106,7 @@ function spd_template_redirects() {
     }
     
     if (get_query_var('edit_meeting_log')) {
-        include plugin_dir_path(__FILE__) . '/../templates/create/create-meeting_log.php.php';
+        include plugin_dir_path(__FILE__) . '/../templates/create/create-meeting_log.php';
         exit;
     }
 
@@ -144,6 +151,16 @@ function spd_template_redirects() {
     
     if (get_query_var('edit_weekly_plan')) {
         include plugin_dir_path(__FILE__) . '/../templates/create/create-weekly_plan.php';
+        exit;
+    }
+
+    if (get_query_var('create_yearly_plan')) {
+        include plugin_dir_path(__FILE__) . '/../templates/create/create-yearly_plan.php';
+        exit;
+    }
+    
+    if (get_query_var('edit_yearly_plan')) {
+        include plugin_dir_path(__FILE__) . '/../templates/create/create-yearly_plan.php';
         exit;
     }
     

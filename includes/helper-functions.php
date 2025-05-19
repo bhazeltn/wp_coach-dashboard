@@ -80,4 +80,38 @@ function spd_autotitle_competition_result($post_id) {
             ]);
         }
     });
+
+    add_action('acf/save_post', 'spd_set_yearly_plan_title', 20);
+function spd_set_yearly_plan_title($post_id) {
+    // Only for yearly_plan post type
+    if (get_post_type($post_id) !== 'yearly_plan') {
+        return;
+    }
+
+    // Avoid running on autosave or invalid ID
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+    if (!$post_id || is_numeric($post_id) === false) return;
+
+    // Get skater and season fields
+    $season = get_field('season', $post_id);
+    $skaters = get_field('skater', $post_id);
+    $skater_name = '';
+
+    if (is_array($skaters) && !empty($skaters)) {
+        $skater = $skaters[0]; // assuming 1 skater per plan
+        $skater_name = get_the_title($skater);
+    }
+
+    if ($season && $skater_name) {
+        $new_title = $season . ' – ' . $skater_name;
+
+        // Update post title and slug
+        wp_update_post([
+            'ID'         => $post_id,
+            'post_title' => $new_title,
+            'post_name'  => sanitize_title($new_title),
+        ]);
+    }
+}
+
 }

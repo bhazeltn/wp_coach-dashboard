@@ -30,7 +30,6 @@ coach_dashboard_section('competitions_upcoming');
 coach_dashboard_section('goal_tracker');
 coach_dashboard_section('competition_results');
 include plugin_dir_path(__FILE__) . '../sections/coach/meeting-upcoming.php';
-coach_dashboard_section('missed_goals');
 coach_dashboard_section('session_logs');
 
 echo '</div>'; 

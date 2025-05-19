@@ -5,6 +5,14 @@ $skater_id = $GLOBALS['skater_id'] ?? null;
 echo '<h2>Goals</h2>';
 echo '<p><a class="button" href="' . esc_url(site_url('/create-goal?skater_id=' . $skater_id)) . '">Add Goal</a></p>';
 
+$timeframe_labels = [
+    'long'   => 'Long-Term (> 1 year)',
+    'season' => 'Seasonal',
+    'medium' => 'Medium-Term (2–6 months)',
+    'week'   => 'Weekly',
+    'micro'  => 'Microcycle',
+];
+
 // Fetch all goals linked to this skater
 $goals = get_posts([
     'post_type'   => 'goal',
@@ -42,7 +50,9 @@ if ($goals) {
         }
         $title_cell .= ')</span>';
 
-        $timeframe = get_field('goal_timeframe', $goal->ID) ?: '—';
+        $timeframe_raw = get_field('goal_timeframe', $goal->ID);
+        $timeframe = $timeframe_labels[$timeframe_raw] ?? '—';
+
 
         $status_raw = get_field('current_status', $goal->ID);
         $status = is_array($status_raw) ? implode(', ', $status_raw) : ($status_raw ?: '—');
