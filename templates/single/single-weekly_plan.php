@@ -13,20 +13,19 @@ if (!is_user_logged_in()) {
 global $post;
 setup_postdata($post);
 
-// Fields
-$skater = get_field('skater');
-$yearly_plan = get_field('related_yearly_plan');
-$week_start = get_field('week_start');
-$theme = get_field('theme');
-$off_ice = get_field('planned_off_ice_activities');
-$sessions = get_field('session_breakdown');
+// === Fields ===
+$skater        = get_field('skater');
+$yearly_plan   = get_field('related_yearly_plan');
+$week_start    = get_field('week_start');
+$theme         = get_field('theme');
+$off_ice       = get_field('planned_off_ice_activities');
+$sessions      = get_field('session_breakdown');
 
-// Format week start
+// === Format Week Start ===
 $week_obj = DateTime::createFromFormat('d/m/Y', $week_start);
-
 $formatted_week = $week_obj ? $week_obj->format('F j, Y') : esc_html($week_start);
 
-// Begin output
+// === Header ===
 echo '<div class="wrap coach-dashboard">';
 echo '<h1>Weekly Plan</h1>';
 
@@ -52,38 +51,65 @@ if (!empty($theme)) {
 }
 echo '</div>';
 
+// === Off-Ice Activities ===
 if ($off_ice && is_array($off_ice)) {
+    echo '<h3>🧘 Planned Off-Ice Activities</h3>';
     echo '<table class="dashboard-table">';
-echo '<thead><tr><th>Day</th><th>Type</th><th>Activity</th></tr></thead>';
-echo '<tbody>';
-foreach ($off_ice as $entry) {
-    $type = $entry['type'];
-    if (is_array($type)) {
-        $type = implode(', ', $type);
+    echo '<thead><tr><th>Day</th><th>Type</th><th>Activity</th></tr></thead><tbody>';
+    foreach ($off_ice as $entry) {
+        $type = $entry['type'];
+        if (is_array($type)) {
+            $type = implode(', ', $type);
+        }
+        $notes = $entry['activity'] ?? '';
+        echo '<tr>';
+        echo '<td>' . esc_html($entry['day']) . '</td>';
+        echo '<td>' . esc_html($type) . '</td>';
+        echo '<td>' . nl2br(esc_html($notes)) . '</td>';
+        echo '</tr>';
     }
-    $notes = $entry['activity'] ?? '';
-
-    echo '<tr>';
-    echo '<td>' . esc_html($entry['day']) . '</td>';
-    echo '<td>' . esc_html($type) . '</td>';
-    echo '<td>' . nl2br(esc_html($notes)) . '</td>';
-    echo '</tr>';
-}
-echo '</tbody></table>';
+    echo '</tbody></table>';
 }
 
+// === On-Ice Session Breakdown ===
 if ($sessions && is_array($sessions)) {
+    echo '<h3>⛸️ Session Overview</h3>';
     echo '<table class="dashboard-table">';
-echo '<thead><tr><th>Day</th><th>Primary Focus</th><th>Program Run-Through</th></tr></thead>';
-echo '<tbody>';
-foreach ($sessions as $entry) {
-    echo '<tr>';
-    echo '<td>' . esc_html($entry['day']) . '</td>';
-    echo '<td>' . esc_html($entry['primary_focus']) . '</td>';
-    echo '<td>' . esc_html($entry['program_run_thru']) . '</td>';
-    echo '</tr>';
+    echo '<thead><tr><th>Day</th><th>Primary Focus</th><th>Program Run-Through</th></tr></thead><tbody>';
+    foreach ($sessions as $entry) {
+        echo '<tr>';
+        echo '<td>' . esc_html($entry['day']) . '</td>';
+        echo '<td>' . esc_html($entry['primary_focus']) . '</td>';
+        echo '<td>' . esc_html($entry['program_run_thru']) . '</td>';
+        echo '</tr>';
+    }
+    echo '</tbody></table>';
 }
-echo '</tbody></table>';
+
+// === Detailed Session Plans (nested inside each session) ===
+if ($sessions && is_array($sessions)) {
+    echo '<h3>📋 Detailed Session Plan</h3>';
+    echo '<table class="dashboard-table">';
+    echo '<thead><tr><th>Day</th><th>Session #</th><th>Detailed Plan</th></tr></thead><tbody>';
+
+    foreach ($sessions as $entry) {
+        $day = $entry['day'] ?? '—';
+        $details = $entry['detailed_session_plan'] ?? [];
+
+        if (!empty($details) && is_array($details)) {
+            foreach ($details as $row) {
+                $session_number = $row['session_number'] ?? '—';
+                $plan_detail = $row['detailed_plan'] ?? '—';
+                echo '<tr>';
+                echo '<td>' . esc_html($day) . '</td>';
+                echo '<td>' . esc_html($session_number) . '</td>';
+                echo '<td>' . wp_kses_post($plan_detail) . '</td>';
+                echo '</tr>';
+            }
+        }
+    }
+
+    echo '</tbody></table>';
 }
 
 echo '<p><a class="button" href="' . esc_url(site_url('/edit-weekly-plan/' . get_the_ID())) . '">Update This Plan</a></p>';

@@ -16,15 +16,15 @@ $plans = new WP_Query([
     ],
 ]);
 
-    echo '<div class="dashboard-section">';
-    echo '<h2>Weekly Plans</h2>';
-    echo '<p><a class="button" href="' . esc_url(site_url('/create-weekly-plan/?skater_id=' . $skater_id)) . '">+ Add Weekly Plan</a></p>';
+echo '<div class="dashboard-section">';
+echo '<h2>Weekly Plans</h2>';
+echo '<p><a class="button" href="' . esc_url(site_url('/create-weekly-plan/?skater_id=' . $skater_id)) . '">+ Add Weekly Plan</a></p>';
 
-    echo '<table class="dashboard-table">';
-    echo '<thead><tr><th>Week Starting</th><th>Theme</th><th>Actions</th></tr></thead>';
-    echo '<tbody>';
+echo '<table class="dashboard-table">';
+echo '<thead><tr><th>Week Starting</th><th>Theme</th><th>Actions</th></tr></thead>';
+echo '<tbody>';
 
-if ($plans->have_posts()) {    
+if ($plans->have_posts()) {
     while ($plans->have_posts()) {
         $plans->the_post();
 
@@ -43,8 +43,11 @@ if ($plans->have_posts()) {
         echo '</td>';
         echo '</tr>';
     }
-
-    echo '</tbody></table>';
-    echo '</div>';
-    wp_reset_postdata();
+} else {
+    echo '<tr><td colspan="3"><em>No weekly plans found.</em></td></tr>';
 }
+
+echo '</tbody></table>';
+echo '</div>';
+
+wp_reset_postdata();

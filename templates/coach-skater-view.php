@@ -26,7 +26,7 @@ if (!$skater) {
 $skater_id = $skater->ID;
 $GLOBALS['skater_id'] = $skater_id;
 
-$edit_link  = get_edit_post_link($skater_id);
+$edit_link  = $edit_url = site_url('/edit-skater/' . $skater_id);
 $level      = get_field('current_level', $skater_id);
 $federation = get_field('federation', $skater_id);
 $club       = get_field('home_club', $skater_id); // optional future field
@@ -55,10 +55,10 @@ include plugin_dir_path(__FILE__) . '../sections/skater/weekly-plans-tracker.php
 include plugin_dir_path(__FILE__) . '../sections/skater/goals.php';
 
 // SECTION 5: Upcoming Competitions
-include plugin_dir_path(__FILE__) . '../sections/skater/competitions-results.php';
+include plugin_dir_path(__FILE__) . '../sections/skater/competitions-upcoming.php';
 
 // SECTION 6: Competition Results
-include plugin_dir_path(__FILE__) . '../sections/skater/competitions-upcoming.php';
+include plugin_dir_path(__FILE__) . '../sections/skater/competitions-results.php';
 
 // Section  : Programs
 include plugin_dir_path(__FILE__) . '../sections/skater/programs.php';

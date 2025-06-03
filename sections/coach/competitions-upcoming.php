@@ -2,6 +2,7 @@
 // --- Coach Dashboard: Upcoming Competitions with Skaters ---
 
 echo '<h2>Upcoming Competitions</h2>';
+echo '<p><a class="button" href="' . esc_url(site_url('/create-competition')) . '">Add Competition</a></p>';
 
 $today = date('Y-m-d');
 

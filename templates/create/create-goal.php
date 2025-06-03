@@ -2,7 +2,7 @@
 /**
  * Template: Create or Edit Goal
  */
-
+ 
 acf_form_head();
 get_header();
 
@@ -29,6 +29,13 @@ if (is_array($skater_raw)) {
 // === Page Title ===
 echo '<h1>' . esc_html($is_edit ? 'Update Goal' : 'Create New Goal') . '</h1>';
 
+
+$skaters = get_posts([
+    'post_type' => 'skater',
+    'post_status' => 'publish',
+    'numberposts' => -1,
+]);
+
 // === ACF Form ===
 acf_form([
     'post_id'       => $is_edit ? $goal_id : 'new_post',
@@ -44,3 +51,5 @@ acf_form([
         : site_url('/coach-dashboard'),
     'field_groups'  => ['group_681c4115a026f'], // ACF Group: Goal
 ]);
+
+get_footer();

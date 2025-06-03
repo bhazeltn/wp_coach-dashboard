@@ -23,6 +23,7 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^create-yearly-plan/?$', 'index.php?create_yearly_plan=1', 'top');
     add_rewrite_rule('^create-program/?$', 'index.php?create_program=1', 'top');
     add_rewrite_rule('^edit-program/([0-9]+)/?$', 'index.php?edit_program=$matches[1]', 'top');
+    add_rewrite_rule('^create-skater/?$', 'index.php?create_skater=1', 'top');
 
     // Edit forms
     add_rewrite_rule('^edit-goal/?$', 'index.php?edit_goal=1', 'top');
@@ -33,7 +34,7 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^edit-session-log/([0-9]+)/?$', 'index.php?edit_session_log=$matches[1]', 'top');
     add_rewrite_rule('^edit-weekly-plan/([0-9]+)/?$', 'index.php?edit_weekly_plan=$matches[1]', 'top');
     add_rewrite_rule('^edit-yearly-plan/([0-9]+)/?$', 'index.php?edit_yearly_plan=$matches[1]', 'top');
-
+    add_rewrite_rule('^edit-skater/([0-9]+)/?$', 'index.php?edit_skater=$matches[1]', 'top');
 
 }
 add_action('init', 'spd_add_custom_rewrite_rules');
@@ -71,6 +72,8 @@ function spd_add_query_vars($vars) {
     $vars[] = 'edit_program';
     $vars[] = 'program_view';
     $vars[] = 'program_id';
+    $vars[] = 'create_skater';
+    $vars[] = 'edit_skater';
 
     return $vars;
 }
@@ -172,6 +175,21 @@ function spd_template_redirects() {
         include plugin_dir_path(__DIR__) . '/templates/create/create-program.php';
         exit;
     }
+
+    if (get_query_var('create_skater')) {
+        include plugin_dir_path(__DIR__) . '/templates/create/create-skater.php';
+        exit;
+    }
+    
+    if ($skater_id = get_query_var('edit_skater')) {
+        global $post;
+        $post = get_post($skater_id);
+        setup_postdata($post);
+    
+        include plugin_dir_path(__FILE__) . '/../templates/create/create-skater.php';
+        exit;
+    }
+    
     
     if ($program_id = get_query_var('edit_program')) {
         global $post;
@@ -201,6 +219,19 @@ add_action('template_redirect', function () {
     $slug = get_query_var('skater_view');
     if ($slug && substr($_SERVER['REQUEST_URI'], -1) !== '/') {
         wp_safe_redirect(home_url('/skater/' . $slug . '/'), 301);
+        exit;
+    }
+});
+
+// === Redirect Root Requests to Coach Dashboard or Login ===
+
+add_action('template_redirect', function () {
+    if ((is_front_page() || is_home()) && !is_admin()) {
+        if (is_user_logged_in()) {
+            wp_redirect(home_url('/coach-dashboard/'), 301);
+        } else {
+            wp_redirect(wp_login_url(home_url('/coach-dashboard/')), 302);
+        }
         exit;
     }
 });

@@ -35,7 +35,22 @@ $segments = [
 ];
 
 echo '<div class="wrap coach-dashboard">';
-echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">&larr; Back to Dashboard</a></p>';
+
+$skater_list = get_field('skater');
+$skater = is_array($skater_list) ? $skater_list[0] ?? null : $skater_list;
+
+if ($skater && is_object($skater)) {
+    $skater_slug = $skater->post_name;
+    echo '<p>';
+    echo '<a class="button" href="' . esc_url(site_url('/skater/' . $skater_slug)) . '">← Back to Skater</a> ';
+    echo '<a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">← Back to Dashboard</a>';
+    echo '</p>';
+} else {
+    echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">← Back to Dashboard</a></p>';
+}
+
+echo '</p>';
+
 echo '<h1>Competition Result</h1>';
 
 echo '<ul>';

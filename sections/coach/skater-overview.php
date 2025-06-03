@@ -2,7 +2,8 @@
 // --- Coach Dashboard: Skater Overview ---
 
 echo '<h2>Skater Overview</h2>';
-echo '<p><a class="button button-primary" href="' . admin_url('post-new.php?post_type=skater') . '">Add New Skater</a></p>';
+echo '<p><a class="button button-primary" href="' . esc_url(site_url('/create-skater')) . '">Add New Skater</a></p>';
+
 
 $skaters = get_posts([
     'post_type'   => 'skater',
@@ -35,7 +36,7 @@ foreach ($skaters as $skater) {
     $federation  = get_field('federation', $skater_id) ?: '—';
 
     $skater_view_url = site_url('/skater/' . $skater_slug);
-    $edit_url        = get_edit_post_link($skater_id);
+    $edit_url = site_url('/edit-skater/' . $skater_id);
 
     // Find current plan (within season date range)
     $plans = get_posts([

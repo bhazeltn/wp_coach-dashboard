@@ -5,7 +5,8 @@ $skater_id = $skater->ID;
 $GLOBALS['skater_id'] = $skater_id;
 
 echo '<h2>Competition Results</h2>';
-echo '<p><a class="button" href="' . admin_url('post-new.php?post_type=competition_result') . '">Add Competition Result</a></p>';
+echo '<p><a class="button" href="' . esc_url(site_url('/create-competition-result?skater_id=' . $skater_id)) . '">Add Competition Result</a></p>';
+
 
 // Define current ISU season
 $season_year = (date('n') >= 7) ? date('Y') : date('Y') - 1;

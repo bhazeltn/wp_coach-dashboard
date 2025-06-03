@@ -2,6 +2,8 @@
 // Template: yearly-plan/weekly-plans.php
 
 $post_id = $post_id ?? get_the_ID();
+$skater = get_field('skater', $post_id)[0] ?? null;
+$skater_id = $skater ? $skater->ID : null;
 
 $weekly_plans = new WP_Query([
     'post_type'      => 'weekly_plan',
@@ -55,7 +57,13 @@ $weekly_plans = new WP_Query([
         <p>No Weekly Plans created yet.</p>
     <?php endif; ?>
 
-    <p><a class="button" href="<?= esc_url(admin_url('post-new.php?post_type=weekly_plan')) ?>">Add Weekly Plan</a></p>
+    <?php if ($skater_id) : ?>
+        <p>
+            <a class="button" href="<?= esc_url(site_url('/create-weekly-plan?skater_id=' . $skater_id . '&yearly_plan_id=' . $post_id)) ?>">
+                Add Weekly Plan
+            </a>
+        </p>
+    <?php endif; ?>
 </div>
 
 <?php wp_reset_postdata(); ?>
