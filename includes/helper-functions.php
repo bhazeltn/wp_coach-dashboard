@@ -136,3 +136,25 @@ function spd_set_meeting_title($post_id) {
         ]);
     }
 }
+
+function spd_auto_title_gap_analysis($post_id) {
+    if (get_post_type($post_id) !== 'gap_analysis') return;
+
+    // Prevent infinite loop
+    remove_action('acf/save_post', 'spd_auto_title_gap_analysis', 20);
+
+    $skater = get_field('skater', $post_id);
+    if ($skater) {
+        $skater_id   = is_array($skater) ? ($skater[0] ?? null) : $skater;
+        $skater_name = get_the_title($skater_id);
+        $title       = $skater_name . ' – Gap Analysis';
+
+        wp_update_post([
+            'ID'         => $post_id,
+            'post_title' => $title,
+        ]);
+    }
+
+    add_action('acf/save_post', 'spd_auto_title_gap_analysis', 20);
+}
+add_action('acf/save_post', 'spd_auto_title_gap_analysis', 20);

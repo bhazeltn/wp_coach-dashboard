@@ -24,6 +24,7 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^create-program/?$', 'index.php?create_program=1', 'top');
     add_rewrite_rule('^edit-program/([0-9]+)/?$', 'index.php?edit_program=$matches[1]', 'top');
     add_rewrite_rule('^create-skater/?$', 'index.php?create_skater=1', 'top');
+    add_rewrite_rule('^create-gap-analysis/?$', 'index.php?create_gap_analysis=1', 'top');
 
     // Edit forms
     add_rewrite_rule('^edit-goal/?$', 'index.php?edit_goal=1', 'top');
@@ -35,7 +36,7 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^edit-weekly-plan/([0-9]+)/?$', 'index.php?edit_weekly_plan=$matches[1]', 'top');
     add_rewrite_rule('^edit-yearly-plan/([0-9]+)/?$', 'index.php?edit_yearly_plan=$matches[1]', 'top');
     add_rewrite_rule('^edit-skater/([0-9]+)/?$', 'index.php?edit_skater=$matches[1]', 'top');
-
+    add_rewrite_rule('^edit-gap-analysis/([0-9]+)/?$', 'index.php?edit_gap_analysis=$matches[1]', 'top');
 }
 add_action('init', 'spd_add_custom_rewrite_rules');
 
@@ -74,6 +75,9 @@ function spd_add_query_vars($vars) {
     $vars[] = 'program_id';
     $vars[] = 'create_skater';
     $vars[] = 'edit_skater';
+    $vars[] = 'create_gap_analysis';
+    $vars[] = 'edit_gap_analysis';
+    $vars[] = 'gap_analysis_id';
 
     return $vars;
 }
@@ -209,6 +213,21 @@ function spd_template_redirects() {
     include plugin_dir_path(__FILE__) . '/../templates/create/create-competition.php';
     exit;
 }
+
+if (get_query_var('create_gap_analysis')) {
+    include plugin_dir_path(__FILE__) . '/../templates/create/create-gap_analysis.php';
+    exit;
+}
+
+if ($gap_id = get_query_var('edit_gap_analysis')) {
+    global $post;
+    $post = get_post($gap_id);
+    setup_postdata($post);
+
+    include plugin_dir_path(__FILE__) . '/../templates/create/create-gap_analysis.php';
+    exit;
+}
+
 
 }
 add_action('template_redirect', 'spd_template_redirects');

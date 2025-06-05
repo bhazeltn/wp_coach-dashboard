@@ -15,6 +15,8 @@ include_once plugin_dir_path(__FILE__) . 'includes/cpt-competition_result.php';
 include_once plugin_dir_path(__FILE__) . 'includes/cpt-program.php';
 include_once plugin_dir_path(__FILE__) . 'includes/cpt-meeting_log.php';
 include_once plugin_dir_path(__FILE__) . 'includes/cpt-injury_log.php';
+include_once plugin_dir_path(__FILE__) . 'includes/cpt-gap_analysis.php';
+
 
 // === Routing, Redirects, Helpers ===
 include_once plugin_dir_path(__FILE__) . 'includes/routing.php';
