@@ -1,16 +1,15 @@
 <?php
 /**
- * General-purpose utility functions for the Coach Dashboard plugin.
+ * General-purpose utility functions for the Skater Planning Dashboard plugin.
  */
 
 /**
- * Format a date string or timestamp as YYYY-MM-DD.
+ * Format a date string or timestamp as M j, Y.
  */
 function coach_format_date($date_string) {
     $dt = DateTime::createFromFormat('Y-m-d', $date_string);
     return $dt ? $dt->format('M j, Y') : $date_string;
 }
-
 
 /**
  * Return a readable label for a post type (e.g., 'weekly_plan' → 'Weekly Plan').
@@ -29,7 +28,7 @@ function coach_get_post_title($post_id) {
 }
 
 /**
- * Simple debug output (only if user is admin).
+ * Simple debug output (only visible to admins).
  */
 function coach_debug($data) {
     if (current_user_can('administrator')) {
@@ -39,73 +38,37 @@ function coach_debug($data) {
     }
 }
 
-add_action('acf/save_post', 'spd_autotitle_competition_result', 20);
-function spd_autotitle_competition_result($post_id) {
-    if (get_post_type($post_id) !== 'competition_result') {
-        return;
-    }
+/**
+ * Set post title for Skater from full_name field.
+ */
+add_action('acf/save_post', 'spd_set_skater_title', 20);
+function spd_set_skater_title($post_id) {
+    if (get_post_type($post_id) !== 'skater') return;
 
-    // Only set if no title provided
-    $existing_title = get_post_field('post_title', $post_id);
-    if ($existing_title && $existing_title !== 'Auto Draft') {
-        return;
-    }
-
-    $skater = get_field('linked_skater', $post_id);
-    $comp   = get_field('linked_competition', $post_id);
-
-    $skater_name = is_array($skater) ? get_the_title($skater[0]) : ($skater ? get_the_title($skater) : '');
-    $comp_name   = is_array($comp)   ? get_the_title($comp[0])   : ($comp   ? get_the_title($comp)   : '');
-
-
-    if ($skater_name && $comp_name) {
-        $title = $comp_name . ' – ' . $skater_name;
-
-        // Update post title and slug
+    $full_name = get_field('full_name', $post_id);
+    if ($full_name) {
         wp_update_post([
             'ID'         => $post_id,
-            'post_title' => $title,
-            'post_name'  => sanitize_title($title)
+            'post_title' => sanitize_text_field($full_name),
+            'post_name'  => sanitize_title($full_name),
         ]);
     }
+}
 
-    add_action('acf/save_post', function ($post_id) {
-        if (get_post_type($post_id) !== 'meeting_log') return;
-
-        $title = get_field('meeting_title', $post_id);
-        if ($title) {
-            wp_update_post([
-                'ID' => $post_id,
-                'post_title' => sanitize_text_field($title),
-            ]);
-        }
-    });
-
-    add_action('acf/save_post', 'spd_set_yearly_plan_title', 20);
+/**
+ * Set post title for Yearly Plan as "Season – Skater".
+ */
+add_action('acf/save_post', 'spd_set_yearly_plan_title', 20);
 function spd_set_yearly_plan_title($post_id) {
-    // Only for yearly_plan post type
-    if (get_post_type($post_id) !== 'yearly_plan') {
-        return;
-    }
+    if (get_post_type($post_id) !== 'yearly_plan') return;
 
-    // Avoid running on autosave or invalid ID
-    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
-    if (!$post_id || is_numeric($post_id) === false) return;
-
-    // Get skater and season fields
-    $season = get_field('season', $post_id);
+    $season  = get_field('season', $post_id);
     $skaters = get_field('skater', $post_id);
-    $skater_name = '';
 
-    if (is_array($skaters) && !empty($skaters)) {
-        $skater = $skaters[0]; // assuming 1 skater per plan
-        $skater_name = get_the_title($skater);
-    }
+    if ($season && is_array($skaters) && !empty($skaters)) {
+        $skater_name = get_the_title($skaters[0]);
+        $new_title = "{$season} – {$skater_name}";
 
-    if ($season && $skater_name) {
-        $new_title = $season . ' – ' . $skater_name;
-
-        // Update post title and slug
         wp_update_post([
             'ID'         => $post_id,
             'post_title' => $new_title,
@@ -114,6 +77,62 @@ function spd_set_yearly_plan_title($post_id) {
     }
 }
 
+/**
+ * Set post title for Weekly Plan as "Week of [Date] – Skater".
+ */
+add_action('acf/save_post', 'spd_set_weekly_plan_title', 20);
+function spd_set_weekly_plan_title($post_id) {
+    if (get_post_type($post_id) !== 'weekly_plan') return;
 
+    $week_start = get_field('week_start', $post_id);
+    $skater     = get_field('skater', $post_id);
 
+    if ($week_start && is_array($skater) && !empty($skater)) {
+        $skater_name = get_the_title($skater[0]);
+        $date = date('F j', strtotime($week_start));
+
+        wp_update_post([
+            'ID'         => $post_id,
+            'post_title' => "Week of {$date} – {$skater_name}",
+            'post_name'  => sanitize_title("week-of-{$date}-{$skater_name}"),
+        ]);
+    }
+}
+
+/**
+ * Set post title for Competition Result as "Skater – Competition".
+ */
+add_action('acf/save_post', 'spd_set_competition_result_title', 20);
+function spd_set_competition_result_title($post_id) {
+    if (get_post_type($post_id) !== 'competition_result') return;
+
+    $skater      = get_field('linked_skater', $post_id);
+    $competition = get_field('competition', $post_id);
+
+    if (is_array($skater) && !empty($skater) && $competition) {
+        $skater_name = get_the_title($skater[0]);
+        $comp_name   = get_the_title($competition);
+
+        wp_update_post([
+            'ID'         => $post_id,
+            'post_title' => "{$skater_name} – {$comp_name}",
+            'post_name'  => sanitize_title("{$skater_name}-{$comp_name}"),
+        ]);
+    }
+}
+
+/**
+ * Set post title for Meeting Log using meeting_title field.
+ */
+add_action('acf/save_post', 'spd_set_meeting_title', 20);
+function spd_set_meeting_title($post_id) {
+    if (get_post_type($post_id) !== 'meeting_log') return;
+
+    $title = get_field('meeting_title', $post_id);
+    if ($title) {
+        wp_update_post([
+            'ID'         => $post_id,
+            'post_title' => sanitize_text_field($title),
+        ]);
+    }
 }

@@ -23,7 +23,7 @@ echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">
 // ACF form config
 acf_form([
     'post_id'      => $post_id,
-    'post_title'   => true,
+    'post_title'   => false,
     'post_content' => false,
     'field_groups' => ['group_6819871fd44c9'], // ✅ Skater Profile group
     'new_post'     => [

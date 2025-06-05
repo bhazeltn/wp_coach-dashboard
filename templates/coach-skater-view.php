@@ -27,6 +27,7 @@ $skater_id = $skater->ID;
 $GLOBALS['skater_id'] = $skater_id;
 
 $edit_link  = $edit_url = site_url('/edit-skater/' . $skater_id);
+$age      = get_field('age', $skater_id);
 $level      = get_field('current_level', $skater_id);
 $federation = get_field('federation', $skater_id);
 $club       = get_field('home_club', $skater_id); // optional future field
@@ -37,6 +38,7 @@ echo '<h1>' . esc_html(get_the_title($skater)) . '</h1>';
 
 echo '<ul>';
 if ($level)      echo '<li><strong>Level:</strong> ' . esc_html($level) . '</li>';
+if ($age)      echo '<li><strong>Age</stong> <em>(As of July 1)</em><strong>:</strong> ' . esc_html($age) . '</li>';
 if ($federation) echo '<li><strong>Federation:</strong> ' . esc_html($federation) . '</li>';
 if ($club)       echo '<li><strong>Home Club:</strong> ' . esc_html($club) . '</li>';
 if ($edit_link)  echo '<li><a class="button small" href="' . esc_url($edit_link) . '">Edit Skater Info</a></li>';

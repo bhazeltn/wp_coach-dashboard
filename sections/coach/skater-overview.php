@@ -20,6 +20,7 @@ echo '<table class="widefat fixed striped">';
 echo '<thead>
     <tr>
         <th>Skater</th>
+        <th>Age</th>
         <th>Level</th>
         <th>Federation</th>
         <th>Current Yearly Plan</th>
@@ -32,6 +33,7 @@ foreach ($skaters as $skater) {
     $skater_id   = $skater->ID;
     $skater_name = get_the_title($skater_id);
     $skater_slug = $skater->post_name;
+    $age = get_field('age', $skater_id) ?: '—';
     $level       = get_field('current_level', $skater_id) ?: '—';
     $federation  = get_field('federation', $skater_id) ?: '—';
 
@@ -73,6 +75,7 @@ foreach ($skaters as $skater) {
     echo '<a href="' . esc_url($skater_view_url) . '">' . esc_html($skater_name) . '</a>';
     echo ' <a class="button small" style="margin-left: 6px;" href="' . esc_url($edit_url) . '">Edit</a>';
     echo '</td>';
+    echo '<td>' . esc_html($age) . '</td>';
     echo '<td>' . esc_html($level) . '</td>';
     echo '<td>' . esc_html($federation) . '</td>';
     echo '<td>' . $plan_link . '</td>';

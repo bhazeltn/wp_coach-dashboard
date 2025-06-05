@@ -68,6 +68,25 @@ if (!have_posts()) {
             echo '<div>' . wpautop(wp_kses_post($progress)) . '</div>';
         }
 
+        $rationale = get_field('rationale');
+        $criteria = get_field('achievement_criteria');
+        $tools = get_field('measurement_tools');
+
+        if ($rationale) {
+            echo '<h2>Rationale</h2>';
+            echo '<div>' . wpautop(esc_html($rationale)) . '</div>';
+        }
+
+        if ($criteria) {
+            echo '<h2>Achievement Criteria</h2>';
+            echo '<div>' . wpautop(wp_kses_post($criteria)) . '</div>';
+        }
+
+        if ($tools) {
+            echo '<h2>Measurement Tools</h2>';
+            echo '<div>' . wpautop(esc_html($tools)) . '</div>';
+        }
+
         if (current_user_can('edit_post', get_the_ID())) {
             $edit_url = site_url('/edit-goal?goal_id=' . get_the_ID());
             echo '<p><a class="button" href="' . esc_url($edit_url) . '">Update Goal</a></p>';
