@@ -29,7 +29,7 @@ if ($is_edit && $post_id && get_post_type($post_id) === 'competition_result') {
 
 acf_form([
     'post_id'       => $post_id,
-    'post_title'    => true,
+    'post_title'    => false,
     'post_content'  => false,
     'new_post'      => [
         'post_type'   => 'competition_result',

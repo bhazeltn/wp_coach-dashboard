@@ -124,3 +124,22 @@
   outline: none;
   box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.2);
 }
+
+.macrocycle-toggle summary {
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1.1em;
+  margin-bottom: 0.5em;
+}
+
+.macrocycle-toggle {
+  margin: 1em 0;
+  padding: 1em;
+  border: 1px solid #ccc;
+  background: #f9f9f9;
+}
+
+.macro-separator {
+  border-top: 2px solid #bbb;
+  margin: 2em 0 1em;
+}

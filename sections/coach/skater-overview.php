@@ -67,8 +67,9 @@ foreach ($skaters as $skater) {
     }
 
     $plan_link = $current_plan
-        ? '<a href="' . esc_url(get_edit_post_link($current_plan->ID)) . '">' . esc_html(get_the_title($current_plan->ID)) . '</a>'
-        : '—';
+      ? '<a href="' . esc_url(site_url('/edit-yearly-plan/' . $current_plan->ID)) . '">' . esc_html(get_the_title($current_plan->ID)) . '</a>'
+      : '—';
+
 
     echo '<tr>';
     echo '<td>';
