@@ -54,8 +54,9 @@ $skater_slug = get_post_field('post_name', $skater_id);
                 ?>
                 <tr>
                     <td><?= esc_html($label); ?></td>
-                    <td><?= esc_html($target ?: '—'); ?></td>
-                    <td><?= esc_html($status ?: '—'); ?></td>
+                    <td><?= $target ? wp_kses_post($target) : '—'; ?></td>
+                    <td><?= $status ? wp_kses_post($status) : '—'; ?></td>
+
                 </tr>
                 <?php endif; ?>
             <?php endforeach; ?>
