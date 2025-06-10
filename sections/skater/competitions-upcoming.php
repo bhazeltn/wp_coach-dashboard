@@ -61,7 +61,7 @@ if ($upcoming) {
         $level      = get_field('level', $r->ID) ?: '—';
         $discipline = get_field('discipline', $r->ID) ?: '—';
         $location   = get_field('competition_location', $c->ID) ?: '—';
-        $type       = get_field('type', $comp->ID) ?: '—';
+        $type = get_field('competition_type', $c->ID) ?: '—';
         $view_url = get_permalink($r->ID);
         $edit_url = site_url('/edit-competition-result/' . $r->ID);
 

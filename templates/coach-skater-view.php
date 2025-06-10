@@ -30,7 +30,8 @@ $edit_link  = $edit_url = site_url('/edit-skater/' . $skater_id);
 $age        = get_field('age', $skater_id);
 $level      = get_field('current_level', $skater_id);
 $federation = get_field('federation', $skater_id);
-$club       = get_field('home_club', $skater_id); // optional future field
+$club       = get_field('home_club', $skater_id);
+$notes      = get_field('notes', $skater_id); // New WYSIWYG field
 
 echo '<div class="wrap coach-dashboard">';
 echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">&larr; Back to Coach Dashboard</a></p>';
@@ -41,8 +42,14 @@ if ($level)      echo '<li><strong>Level:</strong> ' . esc_html($level) . '</li>
 if ($age)        echo '<li><strong>Age</strong> <em>(As of July 1)</em><strong>:</strong> ' . esc_html($age) . '</li>';
 if ($federation) echo '<li><strong>Federation:</strong> ' . esc_html($federation) . '</li>';
 if ($club)       echo '<li><strong>Home Club:</strong> ' . esc_html($club) . '</li>';
-if ($edit_link)  echo '<li><a class="button small" href="' . esc_url($edit_link) . '">Edit Skater Info</a></li>';
 echo '</ul>';
+if ($edit_link)  echo '<a class="button small" href="' . esc_url($edit_link) . '">Edit Skater Info</a>';
+
+// Output Notes section
+if ($notes) {
+    echo '<h2>Notes</h2>';
+    echo '<div class="skater-notes">' . wp_kses_post($notes) . '</div>';
+}
 
 // Gap Analysis Controls
 $gap_analysis = get_posts([
@@ -70,6 +77,9 @@ if (!empty($gap_analysis)) {
     echo '<a class="button" href="' . esc_url(home_url('/create-gap-analysis/')) . '?skater_id=' . $skater_id . '">Create Gap Analysis</a>';
 }
 echo '</div>';
+
+// SECTION: Competition Highlights (PB, SB, CTES)
+include plugin_dir_path(__FILE__) . '../sections/skater/competition-highlights.php';
 
 // SECTION 1: Injury Log
 include plugin_dir_path(__FILE__) . '../sections/skater/injury-log.php';

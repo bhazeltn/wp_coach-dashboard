@@ -14,6 +14,8 @@ $comp_id = get_query_var('edit_competition');
 $is_edit = $comp_id && get_post_type($comp_id) === 'competition';
 
 $post_id = $is_edit ? intval($comp_id) : 'new_post';
+$return_url = $_SERVER['HTTP_REFERER'] ?? site_url('/coach-dashboard');
+
 
 echo '<div class="wrap coach-dashboard">';
 echo '<h1>' . ($is_edit ? 'Update Competition' : 'Create New Competition') . '</h1>';
@@ -29,7 +31,7 @@ acf_form([
         'post_status' => 'publish',
     ],
     'submit_value' => $is_edit ? 'Update Competition' : 'Create Competition',
-    'return'       => site_url('/coach-dashboard'),
+    'return'       => $return_url,
 ]);
 
 echo '</div>';

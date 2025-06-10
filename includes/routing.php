@@ -12,6 +12,9 @@ function spd_add_custom_rewrite_rules() {
     // Coach Dashboard: /coach-dashboard
     add_rewrite_rule('^coach-dashboard/?$', 'index.php?coach_dashboard=1', 'top');
 
+    // View All Views
+    add_rewrite_rule('^view-all-competitions/?$', 'index.php?view_all_competitions=1', 'top');
+
     // Create forms
     add_rewrite_rule('^create-goal/?$', 'index.php?create_goal=1', 'top');
     add_rewrite_rule('^create-injury-log/?$', 'index.php?create_injury_log=1', 'top');
@@ -78,6 +81,8 @@ function spd_add_query_vars($vars) {
     $vars[] = 'create_gap_analysis';
     $vars[] = 'edit_gap_analysis';
     $vars[] = 'gap_analysis_id';
+    $vars[] = 'view_all_competitions';
+
 
     return $vars;
 }
@@ -227,6 +232,12 @@ if ($gap_id = get_query_var('edit_gap_analysis')) {
     include plugin_dir_path(__FILE__) . '/../templates/create/create-gap_analysis.php';
     exit;
 }
+
+if (get_query_var('view_all_competitions')) {
+    include plugin_dir_path(__FILE__) . '/../templates/views/competitions-all.php';
+    exit;
+}
+
 
 
 }

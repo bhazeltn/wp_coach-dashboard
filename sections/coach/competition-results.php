@@ -63,33 +63,42 @@ foreach ($grouped as $comp_data) {
         $skater = get_field('skater', $result->ID);
         $skater = is_array($skater) ? ($skater[0] ?? null) : $skater;
 
-        $placement = get_field('placement', $result->ID) ?: '—';
-        $level     = get_field('level', $result->ID) ?: '—';
+        $level      = get_field('level', $result->ID) ?: '—';
         $discipline = get_field('discipline', $result->ID) ?: '—';
 
-        // Total score logic
-        $total_field = get_field('total_score', $result->ID);
-        $total = $total_field['total_competition_score'] ?? null;
+        // Placement and score handling
+        $placement_display = '—';
+        $medal = '';
+        $total = null;
 
-        if (!$total) {
-            // Fallback to single segment if available
-            $segments = ['short_program_score', 'free_program_score', 'artistic_score'];
-            foreach ($segments as $key) {
-                if (!empty($total_field[$key])) {
-                    $total = $total_field[$key];
-                    break;
-                }
+        $comp_score = get_field('comp_score', $result->ID);
+        if (is_array($comp_score)) {
+            $placement = $comp_score['placement'] ?? null;
+            if ($placement) {
+                $placement_display = $placement;
+                if ((int)$placement === 1) $medal = ' 🥇';
+                elseif ((int)$placement === 2) $medal = ' 🥈';
+                elseif ((int)$placement === 3) $medal = ' 🥉';
             }
+
+            $total = $comp_score['total_competition_score'] ?? null;
         }
 
-        // Medal emoji
-        $medal = ($placement == 1) ? ' 🥇' : (($placement == 2) ? ' 🥈' : (($placement == 3) ? ' 🥉' : ''));
+        if (!$total) {
+            $sp_score = get_field('sp_score_place', $result->ID);
+            $fs_score = get_field('fs_score', $result->ID);
+            if (is_array($sp_score) && !empty($sp_score['short_program_score'])) {
+                $total = $sp_score['short_program_score'];
+            } elseif (is_array($fs_score) && !empty($fs_score['free_program_score'])) {
+                $total = $fs_score['free_program_score'];
+            }
+        }
 
         echo '<tr>';
         echo '<td>' . esc_html($skater ? get_the_title($skater->ID) : '—') . '</td>';
         echo '<td>' . esc_html($level) . '</td>';
         echo '<td>' . esc_html($discipline) . '</td>';
-        echo '<td>' . esc_html($placement . $medal) . '</td>';
+        echo '<td>' . esc_html($placement_display . $medal) . '</td>';
         echo '<td>' . esc_html(is_numeric($total) ? number_format($total, 2) : '—') . '</td>';
         echo '<td><a href="' . esc_url(get_permalink($result->ID)) . '">View</a> | <a href="' . esc_url(site_url('/edit-competition-result/' . $result->ID . '/')) . '">Update</a></td>';
         echo '</tr>';

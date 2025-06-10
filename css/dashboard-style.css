@@ -143,3 +143,44 @@
   border-top: 2px solid #bbb;
   margin: 2em 0 1em;
 }
+
+.plan-card {
+  border: 1px solid #ddd;
+  padding: 16px;
+  margin-bottom: 24px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.03);
+}
+
+.plan-card h3 {
+  margin: 0;
+}
+
+.plan-card .date-range {
+  margin-top: 4px;
+  color: #666;
+}
+
+.plan-card .wysiwyg {
+  margin-top: 0.5em;
+}
+
+.plan-card h4 {
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+.plan-card .macrocycle-list {
+  padding-left: 1.2em;
+  margin: 0;
+}
+
+.plan-card .macrocycle-list li {
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.plan-actions {
+  margin-top: 1em;
+}

@@ -21,26 +21,42 @@ $comp   = get_field('linked_competition', $result_id);
 $skater_name = is_array($skater) ? get_the_title($skater[0]) : ($skater ? get_the_title($skater) : '—');
 $comp_name   = is_array($comp) ? get_the_title($comp[0]) : ($comp ? get_the_title($comp) : '—');
 
-// ACF Groups
-$tes_group = get_field('technical_element_scores', $result_id);
-$pcs_group = get_field('program_component_scores', $result_id);
-$ded_group = get_field('deduction_bonus', $result_id);
-$total_group = get_field('total_score', $result_id);
+// Score groups
+$tes_group     = get_field('scores', $result_id);
+$pcs_group     = get_field('fs_scores', $result_id);
+$ded_group     = get_field('sp_deduction_bonus', $result_id);
+$fs_ded_group  = get_field('fs_deduction_bonus', $result_id);
+$total_group   = get_field('sp_score_place', $result_id);
+$fs_total_group= get_field('fs_score', $result_id);
+$comp_score    = get_field('comp_score', $result_id);
 $detail_sheets = get_field('detail_sheets', $result_id);
 
 // Segment definitions
 $segments = [
-    'short'     => ['label' => 'Short', 'tes' => 'tes_sp', 'pcs' => 'pcs_sp', 'ded' => 'short_program_deductions', 'bonus' => 'short_program_bonus', 'total' => 'short_program_score'],
-    'freeskate' => ['label' => 'Free Skate', 'tes' => 'tes_fs', 'pcs' => 'pcs_fp', 'ded' => 'free_program_deductions', 'bonus' => 'free_program_bonus', 'total' => 'free_program_score'],
+    'short' => [
+        'label' => 'Short',
+        'tes'   => $tes_group['tes_sp'] ?? null,
+        'pcs'   => $tes_group['pcs_sp'] ?? null,
+        'ded'   => $ded_group['short_program_deductions'] ?? null,
+        'bonus' => $ded_group['short_program_bonus'] ?? null,
+        'total' => $total_group['short_program_score'] ?? null,
+    ],
+    'freeskate' => [
+        'label' => 'Free Skate',
+        'tes'   => $pcs_group['tes_fs'] ?? null,
+        'pcs'   => $pcs_group['pcs_fp'] ?? null,
+        'ded'   => $fs_ded_group['free_program_deductions'] ?? null,
+        'bonus' => $fs_ded_group['free_program_bonus'] ?? null,
+        'total' => $fs_total_group['free_program_score'] ?? null,
+    ],
 ];
 
 echo '<div class="wrap coach-dashboard">';
 
-$skater_list = get_field('skater');
-$skater = is_array($skater_list) ? $skater_list[0] ?? null : $skater_list;
-
-if ($skater && is_object($skater)) {
-    $skater_slug = $skater->post_name;
+// Navigation
+$skater_obj = is_array($skater) ? $skater[0] ?? null : $skater;
+if ($skater_obj && is_object($skater_obj)) {
+    $skater_slug = $skater_obj->post_name;
     echo '<p>';
     echo '<a class="button" href="' . esc_url(site_url('/skater/' . $skater_slug)) . '">← Back to Skater</a> ';
     echo '<a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">← Back to Dashboard</a>';
@@ -49,8 +65,6 @@ if ($skater && is_object($skater)) {
     echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">← Back to Dashboard</a></p>';
 }
 
-echo '</p>';
-
 echo '<h1>Competition Result</h1>';
 
 echo '<ul>';
@@ -58,7 +72,8 @@ echo '<li><strong>Skater:</strong> ' . esc_html($skater_name) . '</li>';
 echo '<li><strong>Competition:</strong> ' . esc_html($comp_name) . '</li>';
 echo '<li><strong>Level:</strong> ' . esc_html(get_field('level', $result_id) ?: '—') . '</li>';
 echo '<li><strong>Discipline:</strong> ' . esc_html(get_field('discipline', $result_id) ?: '—') . '</li>';
-$placement = get_field('placement', $result_id);
+
+$placement = $comp_score['placement'] ?? null;
 $placement_display = '—';
 if ($placement) {
     $medal = '';
@@ -68,7 +83,6 @@ if ($placement) {
     $placement_display = $placement . $medal;
 }
 echo '<li><strong>Placement:</strong> ' . esc_html($placement_display) . '</li>';
-
 echo '</ul>';
 
 // Scores table
@@ -77,13 +91,12 @@ echo '<table class="widefat fixed striped">';
 echo '<thead><tr><th>Segment</th><th>TES</th><th>PCS</th><th>Deductions</th><th>Bonus</th><th>Total</th></tr></thead><tbody>';
 
 $has_scores = false;
-
-foreach ($segments as $key => $seg) {
-    $tes = isset($tes_group[$seg['tes']]) ? floatval($tes_group[$seg['tes']]) : 0;
-    $pcs = isset($pcs_group[$seg['pcs']]) ? floatval($pcs_group[$seg['pcs']]) : 0;
-    $ded = isset($ded_group[$seg['ded']]) ? floatval($ded_group[$seg['ded']]) : 0;
-    $bonus = isset($ded_group[$seg['bonus']]) ? floatval($ded_group[$seg['bonus']]) : 0;
-    $total = isset($total_group[$seg['total']]) ? floatval($total_group[$seg['total']]) : ($tes + $pcs - $ded + $bonus);
+foreach ($segments as $seg) {
+    $tes   = floatval($seg['tes'] ?? 0);
+    $pcs   = floatval($seg['pcs'] ?? 0);
+    $ded   = floatval($seg['ded'] ?? 0);
+    $bonus = floatval($seg['bonus'] ?? 0);
+    $total = isset($seg['total']) ? floatval($seg['total']) : ($tes + $pcs - $ded + $bonus);
 
     if ($tes || $pcs || $ded || $bonus || $total) {
         $has_scores = true;
@@ -101,7 +114,6 @@ foreach ($segments as $key => $seg) {
 if (!$has_scores) {
     echo '<tr><td colspan="6"><em>No segment scores recorded.</em></td></tr>';
 }
-
 echo '</tbody></table>';
 
 // Detail Sheets
