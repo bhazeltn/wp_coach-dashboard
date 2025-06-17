@@ -3,7 +3,7 @@
  * Template: View Single Yearly Plan (Formatted)
  */
 
-get_header();
+//get_header();
 echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
 
 if (!is_user_logged_in()) {
@@ -75,4 +75,4 @@ include plugin_dir_path(__FILE__) . '../partials/yearly-plan/injuries.php';
 // === Action Block ===
 include plugin_dir_path(__FILE__) . '../partials/yearly-plan/actions.php';
 
-get_footer();
+//get_footer();

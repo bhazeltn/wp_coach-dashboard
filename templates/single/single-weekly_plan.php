@@ -98,7 +98,7 @@ if ($sessions && is_array($sessions)) {
 
         if (!empty($details) && is_array($details)) {
             foreach ($details as $row) {
-                $session_number = $row['session_number'] ?? '—';
+                $session_number = $row['session_#'] ?? '—';
                 $plan_detail = $row['detailed_plan'] ?? '—';
                 echo '<tr>';
                 echo '<td>' . esc_html($day) . '</td>';

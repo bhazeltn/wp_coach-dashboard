@@ -38,208 +38,225 @@ function coach_debug($data) {
     }
 }
 
-/**
- * Set post title for Skater from full_name field.
- */
-add_action('acf/save_post', 'spd_set_skater_title', 20);
-function spd_set_skater_title($post_id) {
-    if (get_post_type($post_id) !== 'skater') return;
+// --- YEARLY PLAN ---
+add_filter('acf/pre_save_post', 'spd_set_yearly_plan_title_on_create', 1, 1);
+function spd_set_yearly_plan_title_on_create($post_id) {
+    if ($post_id !== 'new_post' || empty($_POST['acf'])) return $post_id;
 
-    $full_name = get_field('full_name', $post_id);
-    if ($full_name) {
-        wp_update_post([
-            'ID'         => $post_id,
-            'post_title' => sanitize_text_field($full_name),
-            'post_name'  => sanitize_title($full_name),
-        ]);
-    }
-}
+    $acf = $_POST['acf'];
+    $season  = $acf['field_681991c117f55'] ?? null;
+    $skaters = $acf['field_681991e217f56'] ?? [];
 
-/**
- * Set post title for Yearly Plan as "Season – Skater".
- */
-add_action('acf/save_post', 'spd_set_yearly_plan_title', 20);
-function spd_set_yearly_plan_title($post_id) {
-    if (get_post_type($post_id) !== 'yearly_plan') return;
-
-    $season  = get_field('season', $post_id);
-    $skaters = get_field('skater', $post_id);
-
-    if ($season && is_array($skaters) && !empty($skaters)) {
+    if ($season && is_array($skaters) && count($skaters) > 0) {
         $skater_name = get_the_title($skaters[0]);
-        $new_title = "{$season} – {$skater_name}";
-
-        wp_update_post([
-            'ID'         => $post_id,
-            'post_title' => $new_title,
-            'post_name'  => sanitize_title($new_title),
-        ]);
+        $_POST['acf']['_post_title'] = "{$season} – {$skater_name}";
+        error_log("✅ Set Yearly Plan title: {$season} – {$skater_name}");
     }
+
+    return $post_id;
 }
 
-/**
- * Set post title for Weekly Plan as "Week of [Date] – Skater".
- */
-add_action('acf/save_post', 'spd_set_weekly_plan_title', 20);
-function spd_set_weekly_plan_title($post_id) {
-    if (get_post_type($post_id) !== 'weekly_plan') return;
 
-    $week_start = get_field('week_start', $post_id);
-    $skater     = get_field('skater', $post_id);
-
-    if ($week_start && is_array($skater) && !empty($skater)) {
-        $skater_name = get_the_title($skater[0]);
-        $date = date('F j', strtotime($week_start));
-
-        wp_update_post([
-            'ID'         => $post_id,
-            'post_title' => "Week of {$date} – {$skater_name}",
-            'post_name'  => sanitize_title("week-of-{$date}-{$skater_name}"),
-        ]);
+// --- WEEKLY PLAN ---
+add_filter('acf/pre_save_post', 'spd_set_weekly_plan_title_on_create', 1, 1);
+function spd_set_weekly_plan_title_on_create($post_id) {
+    if ($post_id !== 'new_post') {
+        error_log("ℹ️ Weekly Plan: Not a new post, skipping: $post_id");
+        return $post_id;
     }
-}
 
-/**
- * Set post title for Competition Result as "Skater – Competition".
- */
-add_action('acf/save_post', 'spd_set_competition_result_title', 20);
-function spd_set_competition_result_title($post_id) {
-    if (get_post_type($post_id) !== 'competition_result') return;
-
-    $skater      = get_field('linked_skater', $post_id);
-    $competition = get_field('competition', $post_id);
-
-    if (is_array($skater) && !empty($skater) && $competition) {
-        $skater_name = get_the_title($skater[0]);
-        $comp_name   = get_the_title($competition);
-
-        wp_update_post([
-            'ID'         => $post_id,
-            'post_title' => "{$skater_name} – {$comp_name}",
-            'post_name'  => sanitize_title("{$skater_name}-{$comp_name}"),
-        ]);
+    if (empty($_POST['acf'])) {
+        error_log("❌ Weekly Plan: No ACF data in \$_POST");
+        return $post_id;
     }
-}
 
-/**
- * Set post title for Meeting Log using meeting_title field.
- */
-add_action('acf/save_post', 'spd_set_meeting_title', 20);
-function spd_set_meeting_title($post_id) {
-    if (get_post_type($post_id) !== 'meeting_log') return;
+    $acf = $_POST['acf'];
+    error_log("🔍 Weekly Plan: Raw ACF data: " . print_r($acf, true));
 
-    $title = get_field('meeting_title', $post_id);
-    if ($title) {
-        wp_update_post([
-            'ID'         => $post_id,
-            'post_title' => sanitize_text_field($title),
-        ]);
-    }
-}
+    $week_start = $acf['field_681c3d8e4e501'] ?? null;
+    $skaters    = $acf['field_681c3d5d4e4ff'] ?? null;
 
-function spd_auto_title_gap_analysis($post_id) {
-    if (get_post_type($post_id) !== 'gap_analysis') return;
+    error_log("🔍 Weekly Plan: week_start = " . print_r($week_start, true));
+    error_log("🔍 Weekly Plan: skaters = " . print_r($skaters, true));
 
-    // Prevent infinite loop
-    remove_action('acf/save_post', 'spd_auto_title_gap_analysis', 20);
-
-    $skater = get_field('skater', $post_id);
-    if ($skater) {
-        $skater_id   = is_array($skater) ? ($skater[0] ?? null) : $skater;
+    if ($week_start && is_array($skaters) && count($skaters) > 0) {
+        $skater_id   = $skaters[0];
         $skater_name = get_the_title($skater_id);
-        $title       = $skater_name . ' – Gap Analysis';
+        $formatted   = date('F j', strtotime($week_start));
 
-        wp_update_post([
-            'ID'         => $post_id,
-            'post_title' => $title,
-        ]);
+        $_POST['acf']['_post_title'] = "Week of {$formatted} – {$skater_name}";
+        error_log("✅ Set Weekly Plan title: Week of {$formatted} – {$skater_name}");
+    } else {
+        error_log("❌ Weekly Plan: Missing skater or week_start");
     }
 
-    add_action('acf/save_post', 'spd_auto_title_gap_analysis', 20);
+    return $post_id;
 }
-add_action('acf/save_post', 'spd_auto_title_gap_analysis', 20);
 
 
-/**
- * Helper function: Get Personal Best, Season Best, and CTES data for a skater.
- */
-function get_skater_pb_sb_ctes($skater_id) {
-    $results = get_posts([
-        'post_type' => 'competition_result',
-        'numberposts' => -1,
-        'post_status' => 'publish',
-        'meta_query' => [[
-            'key' => 'skater',
-            'value' => '"' . $skater_id . '"',
-            'compare' => 'LIKE'
-        ]],
-    ]);
+// --- COMPETITION RESULT ---
+add_filter('acf/pre_save_post', 'spd_set_competition_result_title_on_create', 1, 1);
+function spd_set_competition_result_title_on_create($post_id) {
+    if ($post_id !== 'new_post') return $post_id;
+    if (empty($_POST['acf'])) return $post_id;
 
-    $today = date('Y-m-d');
-    $season_year = (date('n') >= 7) ? date('Y') : date('Y') - 1;
-    $season_start = $season_year . '-07-01';
-    $season_end   = ($season_year + 1) . '-06-30';
+    $acf = $_POST['acf'];
+    $skaters     = $acf['field_681c30ea1f0dd'] ?? null; // linked_skater
+    $competition = $acf['field_681c31171f0de'] ?? null; // competition
 
-    $pb = []; $sb = [];
-    $ctes = ['short_tes' => 0, 'free_tes' => 0, 'combined' => 0];
+    error_log("🔍 Competition Result: skaters = " . print_r($skaters, true));
+    error_log("🔍 Competition Result: competition = " . print_r($competition, true));
 
-    foreach ($results as $r) {
-        $score      = get_field('comp_score', $r->ID);          // total score
-        $sp_total   = get_field('sp_score_place', $r->ID);      // short program total
-        $fs_total   = get_field('fs_score', $r->ID);            // free program total
-        $sp_scores  = get_field('scores', $r->ID);              // SP TES + PCS
-        $fs_scores  = get_field('fs_scores', $r->ID);           // FS TES + PCS
+    if (is_array($skaters) && count($skaters) > 0 && is_array($competition) && count($competition) > 0) {
+        $skater_name = get_the_title($skaters[0]);
+        $comp_name   = get_the_title($competition[0]);
 
-        $comp = get_field('linked_competition', $r->ID);
-        $comp = is_array($comp) ? $comp[0] ?? null : $comp;
-        if (!$comp || !is_object($comp)) continue;
-
-        $comp_name = get_the_title($comp->ID);
-        $comp_date = get_field('competition_date', $comp->ID);
-        $comp_date = date('Y-m-d', strtotime($comp_date)); // ✅ Normalize
-        $comp_type = get_field('competition_type', $comp->ID);
-
-        // --- Scores
-        $tscore  = floatval($score['total_competition_score'] ?? 0);
-        $sptotal = floatval($sp_total['short_program_score'] ?? 0);
-        $fstotal = floatval($fs_total['free_program_score'] ?? 0);
-        $sp_tes  = floatval($sp_scores['tes_sp'] ?? 0);
-        $sp_pcs  = floatval($sp_scores['pcs_sp'] ?? 0);
-        $fs_tes  = floatval($fs_scores['tes_fs'] ?? 0);
-        $fs_pcs  = floatval($fs_scores['pcs_fp'] ?? 0);
-
-        // --- Personal Bests
-        if ($tscore > ($pb['total_score']['score'] ?? 0)) $pb['total_score'] = ['score' => $tscore, 'comp' => $comp_name, 'date' => $comp_date];
-        if ($sptotal > ($pb['short_total']['score'] ?? 0)) $pb['short_total'] = ['score' => $sptotal, 'comp' => $comp_name, 'date' => $comp_date];
-        if ($fstotal > ($pb['free_total']['score'] ?? 0))  $pb['free_total']  = ['score' => $fstotal,  'comp' => $comp_name, 'date' => $comp_date];
-        if ($sp_tes > ($pb['sp_tes']['score'] ?? 0))       $pb['sp_tes']      = ['score' => $sp_tes,  'comp' => $comp_name, 'date' => $comp_date];
-        if ($sp_pcs > ($pb['sp_pcs']['score'] ?? 0))       $pb['sp_pcs']      = ['score' => $sp_pcs,  'comp' => $comp_name, 'date' => $comp_date];
-        if ($fs_tes > ($pb['fs_tes']['score'] ?? 0))       $pb['fs_tes']      = ['score' => $fs_tes,  'comp' => $comp_name, 'date' => $comp_date];
-        if ($fs_pcs > ($pb['fs_pcs']['score'] ?? 0))       $pb['fs_pcs']      = ['score' => $fs_pcs,  'comp' => $comp_name, 'date' => $comp_date];
-
-        // --- Season Bests
-        if ($comp_date >= $season_start && $comp_date <= $season_end) {
-            if ($tscore > ($sb['total_score']['score'] ?? 0)) $sb['total_score'] = ['score' => $tscore, 'comp' => $comp_name, 'date' => $comp_date];
-            if ($sptotal > ($sb['short_total']['score'] ?? 0)) $sb['short_total'] = ['score' => $sptotal, 'comp' => $comp_name, 'date' => $comp_date];
-            if ($fstotal > ($sb['free_total']['score'] ?? 0))  $sb['free_total']  = ['score' => $fstotal,  'comp' => $comp_name, 'date' => $comp_date];
-            if ($sp_tes > ($sb['sp_tes']['score'] ?? 0))       $sb['sp_tes']      = ['score' => $sp_tes,  'comp' => $comp_name, 'date' => $comp_date];
-            if ($sp_pcs > ($sb['sp_pcs']['score'] ?? 0))       $sb['sp_pcs']      = ['score' => $sp_pcs,  'comp' => $comp_name, 'date' => $comp_date];
-            if ($fs_tes > ($sb['fs_tes']['score'] ?? 0))       $sb['fs_tes']      = ['score' => $fs_tes,  'comp' => $comp_name, 'date' => $comp_date];
-            if ($fs_pcs > ($sb['fs_pcs']['score'] ?? 0))       $sb['fs_pcs']      = ['score' => $fs_pcs,  'comp' => $comp_name, 'date' => $comp_date];
-
-            // --- CTES (ISU-level only)
-            if (in_array($comp_type, ['ISU International', 'Grand Prix', 'ISU Championships'])) {
-                if ($sp_tes > ($ctes['short_tes']['score'] ?? 0)) $ctes['short_tes'] = ['score' => $sp_tes, 'comp' => $comp_name];
-                if ($fs_tes > ($ctes['free_tes']['score'] ?? 0))  $ctes['free_tes']  = ['score' => $fs_tes, 'comp' => $comp_name];
-            }
+        if ($skater_name && $comp_name) {
+            $_POST['acf']['_post_title'] = "{$skater_name} – {$comp_name}";
+            error_log("✅ Set Competition Result title: {$skater_name} – {$comp_name}");
+        } else {
+            error_log("❌ One or both post titles not found.");
         }
+    } else {
+        error_log("❌ Competition Result: Missing skater or competition");
     }
 
-    $ctes['combined'] = floatval(($ctes['short_tes']['score'] ?? 0) + ($ctes['free_tes']['score'] ?? 0));
-
-    return [
-        'pb' => $pb,
-        'sb' => $sb,
-        'ctes' => $ctes
-    ];
+    return $post_id;
 }
+
+
+// --- MEETING LOG ---
+add_filter('acf/pre_save_post', 'spd_set_meeting_log_title_on_create', 1, 1);
+function spd_set_meeting_log_title_on_create($post_id) {
+    if ($post_id !== 'new_post') return $post_id;
+    if (empty($_POST['acf'])) return $post_id;
+
+    $acf = $_POST['acf'];
+
+    $skaters      = $acf['field_68242967056c1'] ?? null;
+    $meeting_date = $acf['field_68242ae8056c2'] ?? null;
+    $meeting_type = $acf['field_68242af6056c3'] ?? [];
+
+    error_log("🔍 Meeting Log: skaters = " . print_r($skaters, true));
+    error_log("🔍 Meeting Log: meeting_date = " . $meeting_date);
+    error_log("🔍 Meeting Log: meeting_type = " . print_r($meeting_type, true));
+
+    if (is_array($skaters) && count($skaters) > 0 && $meeting_date && !empty($meeting_type)) {
+        $skater_name = get_the_title($skaters[0]);
+        $type        = is_array($meeting_type) ? implode(', ', $meeting_type) : $meeting_type;
+        $formatted_date = date('F j, Y', strtotime($meeting_date));
+        $title = "{$skater_name} – {$type} – {$formatted_date}";
+
+        $_POST['acf']['_post_title'] = $title;
+        error_log("✅ Set Meeting Log title: $title");
+    } else {
+        error_log("❌ Meeting Log: Missing skater, meeting date, or type");
+    }
+
+    return $post_id;
+}
+
+
+
+// --- SKATER ---
+add_filter('acf/pre_save_post', 'spd_set_skater_title_on_create', 1, 1);
+function spd_set_skater_title_on_create($post_id) {
+    if ($post_id !== 'new_post') return $post_id;
+    if (empty($_POST['acf'])) return $post_id;
+
+    $acf = $_POST['acf'];
+    $full_name = $acf['field_681987201e176'] ?? null; // ✅ Correct key
+
+    error_log("🔍 Skater: full_name = " . print_r($full_name, true));
+
+    if ($full_name) {
+        $_POST['acf']['_post_title'] = sanitize_text_field($full_name);
+        error_log("✅ Set Skater title: {$full_name}");
+    } else {
+        error_log("❌ Skater: Missing full_name");
+    }
+
+    return $post_id;
+}
+
+// --- SESSION LOG ---
+add_filter('acf/pre_save_post', 'spd_set_session_log_title_on_create', 1, 1);
+function spd_set_session_log_title_on_create($post_id) {
+    if ($post_id !== 'new_post') return $post_id;
+    if (empty($_POST['acf'])) return $post_id;
+
+    $acf = $_POST['acf'];
+    $session_date = $acf['field_681c425a575e3'] ?? null;
+    $skaters      = $acf['field_681c4232575e1'] ?? null;
+
+    error_log("🔍 Session Log: session_date = " . print_r($session_date, true));
+    error_log("🔍 Session Log: skaters = " . print_r($skaters, true));
+
+    if ($session_date && is_array($skaters) && count($skaters) > 0) {
+        $skater_id   = $skaters[0];
+        $skater_name = get_the_title($skater_id);
+        $formatted   = date('F j, Y', strtotime($session_date));
+        $title       = "{$skater_name} – Session Log – {$formatted}";
+
+        $_POST['acf']['_post_title'] = $title;
+        error_log("✅ Set Session Log title: {$title}");
+    } else {
+        error_log("❌ Session Log: Missing skater or date");
+    }
+
+    return $post_id;
+}
+
+// --- GAP ANALYSIS ---
+add_filter('acf/pre_save_post', 'spd_set_gap_analysis_title_on_create', 1, 1);
+function spd_set_gap_analysis_title_on_create($post_id) {
+    if ($post_id !== 'new_post') return $post_id;
+    if (empty($_POST['acf'])) return $post_id;
+
+    $acf = $_POST['acf'];
+    $skater_id = $acf['field_gap_skater'] ?? null;
+
+    error_log("🔍 Gap Analysis: skater_id = " . print_r($skater_id, true));
+
+    if ($skater_id) {
+        $skater_name = get_the_title($skater_id);
+        $title = "Gap Analysis – {$skater_name}";
+
+        $_POST['acf']['_post_title'] = $title;
+        error_log("✅ Set Gap Analysis title: {$title}");
+    } else {
+        error_log("❌ Gap Analysis: Missing skater");
+    }
+
+    return $post_id;
+}
+
+// --- INJURY LOG ---
+add_filter('acf/pre_save_post', 'spd_set_injury_log_title_on_create', 1, 1);
+function spd_set_injury_log_title_on_create($post_id) {
+    if ($post_id !== 'new_post') return $post_id;
+    if (empty($_POST['acf'])) return $post_id;
+
+    $acf = $_POST['acf'];
+    $skaters     = $acf['field_68242bb0de87d'] ?? null; // relationship array
+    $injury_date = $acf['field_68242c07de880'] ?? null; // Ymd date
+
+    error_log("🔍 Injury Log: skater_id = " . print_r($skaters, true));
+    error_log("🔍 Injury Log: injury_date = " . print_r($injury_date, true));
+
+    if (is_array($skaters) && count($skaters) > 0 && $injury_date) {
+        $skater_name = get_the_title($skaters[0]);
+        $formatted   = date('M j, Y', strtotime($injury_date));
+        $title = "Injury – {$skater_name} – {$formatted}";
+
+        $_POST['acf']['_post_title'] = $title;
+        error_log("✅ Set Injury Log title: {$title}");
+    } else {
+        error_log("❌ Injury Log: Missing skater or injury date");
+    }
+
+    return $post_id;
+}
+
+
+

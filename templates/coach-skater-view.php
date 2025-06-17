@@ -14,7 +14,7 @@ if (!in_array('coach', (array) $current_user->roles) && !in_array('administrator
 
 echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
 
-get_header(); // ← This loads the <head> tag and enqueued styles/scripts
+//get_header(); // ← This loads the <head> tag and enqueued styles/scripts
 
 $skater_slug = get_query_var('skater_view');
 $skater = get_page_by_path($skater_slug, OBJECT, 'skater');
@@ -113,4 +113,4 @@ include plugin_dir_path(__FILE__) . '../sections/skater/missed-goals.php';
 
 echo '</div>';
 
-get_footer(); // ← Closes the page, loads enqueued scripts if needed
+//get_footer(); // ← Closes the page, loads enqueued scripts if needed

@@ -50,22 +50,26 @@ if (empty($results)) {
 
     foreach ($results as $result) {
         $res_id = $result->ID;
-        $skater = get_field('linked_skater', $res_id);
+    
+        // Skater
+        $skater = get_field('skater', $res_id);
         $skater_name = $skater ? get_the_title(is_array($skater) ? $skater[0] : $skater) : '—';
-
+    
+        // Level / Discipline
         $level = get_field('level', $res_id) ?: '—';
         $discipline = get_field('discipline', $res_id) ?: '—';
-        $placement = get_field('placement', $res_id) ?: '—';
-
-        // Medal emoji
-        $medal = '';
-        if ($placement == 1) $medal = ' 🥇';
-        elseif ($placement == 2) $medal = ' 🥈';
-        elseif ($placement == 3) $medal = ' 🥉';
-
+    
+        // Placement
+        $comp_score = get_field('comp_score', $res_id);
+        $placement = $comp_score['placement'] ?? '—';
+        $medal = ($placement == 1) ? ' 🥇' : (($placement == 2) ? ' 🥈' : (($placement == 3) ? ' 🥉' : ''));
         $placement_display = esc_html($placement . $medal);
-
-        // Check for detail sheets
+    
+        // Total Score
+        $total_score = $comp_score['total_score'] ?? null;
+        $score_display = is_numeric($total_score) ? number_format($total_score, 2) : '—';
+    
+        // Detail Sheet
         $sheets = get_field('detail_sheets', $res_id);
         $has_sheet = false;
         if ($sheets && is_array($sheets)) {
@@ -76,17 +80,7 @@ if (empty($results)) {
                 }
             }
         }
-
-        // Basic TES/PCS scores if available
-        $tes_group = get_field('technical_element_scores', $res_id);
-        $pcs_group = get_field('program_component_scores', $res_id);
-        $tes_short = isset($tes_group['tes_sp']) ? floatval($tes_group['tes_sp']) : 0;
-        $pcs_short = isset($pcs_group['pcs_sp']) ? floatval($pcs_group['pcs_sp']) : 0;
-
-        $score_display = ($tes_short || $pcs_short)
-            ? number_format($tes_short + $pcs_short, 2) . ' (short)'
-            : '—';
-
+    
         echo '<tr>';
         echo '<td>' . esc_html($skater_name) . '</td>';
         echo '<td>' . esc_html($level) . '</td>';
@@ -97,6 +91,7 @@ if (empty($results)) {
         echo '<td><a href="' . esc_url(get_permalink($res_id)) . '">View</a> | <a href="' . esc_url(site_url('/edit-competition-result/' . $res_id . '/')) . '">Update</a></td>';
         echo '</tr>';
     }
+    
 
     echo '</tbody></table>';
 }

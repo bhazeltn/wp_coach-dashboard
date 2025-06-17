@@ -1,12 +1,18 @@
 <?php
-/**
- * Template: Create or Edit Yearly Plan
- */
-
+// Must run before any output
 acf_form_head();
-get_header();
-echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
+?>
 
+<!DOCTYPE html>
+<html <?php language_attributes(); ?>>
+<head>
+    <meta charset="<?php bloginfo('charset'); ?>">
+    <link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">
+    <?php wp_head(); ?>
+</head>
+<body <?php body_class(); ?>>
+
+<?php
 if (!is_user_logged_in()) {
     auth_redirect();
 }
@@ -17,7 +23,7 @@ $is_edit = $post_id && is_numeric($post_id);
 
 // For skater prefill or redirect
 $skater = $is_edit ? get_field('skater', $post_id) : null;
-$skater_slug = $skater ? $skater->post_name : null;
+$skater_slug = $skater && is_object($skater) ? $skater->post_name : null;
 
 $prefill_skater_id = !$is_edit
     ? ($_GET['skater_id'] ?? ($GLOBALS['skater_id'] ?? null))
@@ -50,4 +56,8 @@ acf_form([
 ]);
 
 echo '</div>';
-get_footer();
+?>
+
+<?php wp_footer(); ?>
+</body>
+</html>

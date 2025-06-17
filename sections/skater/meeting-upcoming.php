@@ -25,6 +25,7 @@ $meetings = new WP_Query([
 if ($meetings->have_posts()) {
     echo '<div class="dashboard-section">';
     echo '<h2>Upcoming Meetings</h2>';
+    echo '<p><a class="button" href="' . esc_url(site_url('/create-meeting-log?skater_id=' . $skater_id)) . '">Add Meeting</a></p>';
     echo '<ul class="dashboard-list">';
     while ($meetings->have_posts()) {
         $meetings->the_post();

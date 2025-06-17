@@ -16,7 +16,7 @@ echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard
 
 
 
-get_header();
+//get_header();
 
 echo '<div class="wrap coach-dashboard">';
 echo '<h1>Coach Dashboard</h1>';
@@ -34,4 +34,4 @@ coach_dashboard_section('session_logs');
 
 echo '</div>'; 
 
-get_footer();
+//get_footer();
