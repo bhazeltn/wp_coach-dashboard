@@ -58,8 +58,10 @@ if ($notes) {
     echo '<h2>Recovery Notes</h2>';
     echo wp_kses_post(wpautop($notes));
 }
-
-echo '<p><a class="button" href="' . esc_url($edit_link) . '">Update Injury Log</a></p>';
+$is_skater = in_array('skater', (array) $current_user->roles);
+if (!$is_skater){
+    echo '<p><a class="button" href="' . esc_url($edit_link) . '">Update Injury Log</a></p>';
+}
 echo '</div>';
 
 get_footer();

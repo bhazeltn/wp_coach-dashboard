@@ -99,7 +99,12 @@ $skater_notes = get_field('skater_notes', $post_id);
         <p><strong>Skater:</strong><br><?= wp_kses_post($skater_notes ?: '<em>None provided.</em>') ?></p>
     </div>
 
-    <p><a class="button" href="<?= esc_url(site_url('/edit-program/' . $post_id)) ?>">Edit Program</a></p>
+    <?php
+    $is_skater = in_array('skater', (array) $current_user->roles);
+    if (!$is_skater){
+        echo '<p><a class="button" href="<?= esc_url(site_url('/edit-program/' . $post_id)) ?>">Edit Program</a></p>';
+    }
+    ?>
     <p><a class="button" href="<?= esc_url($skater ? '/skater/' . $skater->post_name . '/' : '/coach-dashboard') ?>">Back</a></p>
 </div>
 

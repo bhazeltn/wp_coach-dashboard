@@ -3,7 +3,9 @@
 $skater_id = $GLOBALS['skater_id'] ?? null;
 
 echo '<h2>Yearly Training Plans</h2>';
-echo '<p><a class="button" href="' . esc_url(site_url('/create-yearly-plan?skater_id=' . $skater_id)) . '">Add Yearly Plan</a></p>';
+if (!$is_skater) {
+    echo '<p><a class="button" href="' . esc_url(site_url('/create-yearly-plan?skater_id=' . $skater_id)) . '">Add Yearly Plan</a></p>';
+}
 
 if (!$skater_id) {
     echo '<p>No skater context available.</p>';
@@ -49,7 +51,7 @@ foreach ($plans as $plan) {
 }
 
 // --- Output helper
-function display_yearly_plan_summary($plan) {
+function display_yearly_plan_summary($plan, $is_skater = false) {
     $view_url = get_permalink($plan->ID);
     $edit_url = site_url('/edit-yearly-plan/' . $plan->ID);
 
@@ -112,7 +114,9 @@ function display_yearly_plan_summary($plan) {
 
     echo '<div class="plan-actions">';
     echo '<a class="button button-small" href="' . esc_url($view_url) . '">View</a>';
-    echo '<a class="button button-small" href="' . esc_url($edit_url) . '" style="margin-left: 8px;">Update</a>';
+    if (!$is_skater) {
+        echo '<a class="button button-small" href="' . esc_url($edit_url) . '" style="margin-left: 8px;">Update</a>';
+    }
     echo '</div>';
 
     echo '</div>';
@@ -123,18 +127,18 @@ function display_yearly_plan_summary($plan) {
 // --- Render blocks
 if ($current_plan) {
     echo '<h3>Current Plan – ' . esc_html(get_field('season', $current_plan->ID)) . '</h3>';
-    display_yearly_plan_summary($current_plan);
+    display_yearly_plan_summary($current_plan, $is_skater);
 }
 
 if ($upcoming_plan) {
     echo '<h3>Upcoming Plan – ' . esc_html(get_field('season', $upcoming_plan->ID)) . '</h3>';
-    display_yearly_plan_summary($upcoming_plan);
+    display_yearly_plan_summary($upcoming_plan, $is_skater);
 }
 
 if (!empty($other_plans)) {
     echo '<h3>Past Plans</h3>';
     foreach ($other_plans as $plan) {
-        display_yearly_plan_summary($plan);
+        display_yearly_plan_summary($plan, $is_skater);
     }
 }
 ?>

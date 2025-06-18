@@ -7,10 +7,49 @@ if (!is_user_logged_in()) {
     auth_redirect();
 }
 
+
+$skater_slug = get_query_var('skater_view');
+$skater = get_page_by_path($skater_slug, OBJECT, 'skater');
+
+if (!$skater) {
+    wp_die('Skater not found.');
+}
+
 $current_user = wp_get_current_user();
-if (!in_array('coach', (array) $current_user->roles) && !in_array('administrator', (array) $current_user->roles)) {
+$allowed = false;
+$roles = (array) $current_user->roles;
+
+error_log('👤 Current user: ' . $current_user->user_login . ' | Roles: ' . implode(', ', $roles));
+error_log('🔍 Skater post: ' . $skater->post_title . ' (ID: ' . $skater->ID . ')');
+
+// Coach/Admin check
+if (in_array('coach', $roles) || in_array('administrator', $roles)) {
+    error_log('✅ Coach or admin access granted.');
+    $allowed = true;
+}
+
+// Skater check
+if (in_array('skater', $roles)) {
+    $linked_user = get_field('skater_account', $skater->ID);
+    if ($linked_user && is_object($linked_user)) {
+        error_log('🔗 Linked user ID: ' . $linked_user->ID);
+        if ($linked_user->ID === $current_user->ID) {
+            error_log('✅ Skater is linked to this profile.');
+            $allowed = true;
+        } else {
+            error_log('❌ Skater is NOT linked to this profile.');
+        }
+    } else {
+        error_log('⚠️ No skater_account linked or not an object.');
+    }
+}
+
+if (!$allowed) {
+    error_log('🚫 Access denied.');
     wp_die('You do not have permission to view this skater dashboard.');
 }
+
+$is_skater = in_array('skater', (array) $current_user->roles);
 
 echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
 
@@ -33,9 +72,13 @@ $federation = get_field('federation', $skater_id);
 $club       = get_field('home_club', $skater_id);
 $notes      = get_field('notes', $skater_id); // New WYSIWYG field
 
+
 echo '<div class="wrap coach-dashboard">';
-echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">&larr; Back to Coach Dashboard</a></p>';
+if (!$is_skater){
+    echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">&larr; Back to Coach Dashboard</a></p>';
+}
 echo '<h1>' . esc_html(get_the_title($skater)) . '</h1>';
+
 
 echo '<ul>';
 if ($level)      echo '<li><strong>Level:</strong> ' . esc_html($level) . '</li>';
@@ -43,7 +86,9 @@ if ($age)        echo '<li><strong>Age</strong> <em>(As of July 1)</em><strong>:
 if ($federation) echo '<li><strong>Federation:</strong> ' . esc_html($federation) . '</li>';
 if ($club)       echo '<li><strong>Home Club:</strong> ' . esc_html($club) . '</li>';
 echo '</ul>';
-if ($edit_link)  echo '<a class="button small" href="' . esc_url($edit_link) . '">Edit Skater Info</a>';
+if (!$is_skater) {
+    if ($edit_link)  echo '<a class="button small" href="' . esc_url($edit_link) . '">Edit Skater Info</a>';
+}
 
 // Output Notes section
 if ($notes) {
@@ -69,12 +114,16 @@ echo '<div class="gap-analysis-links" style="margin-bottom: 20px;">';
 if (!empty($gap_analysis)) {
     $gap_id   = $gap_analysis[0]->ID;
     $view_url = get_permalink($gap_id);
-    $edit_url = home_url('/edit-gap-analysis/' . $gap_id . '/');
-
     echo '<a class="button" href="' . esc_url($view_url) . '">View Gap Analysis</a> ';
-    echo '<a class="button" href="' . esc_url($edit_url) . '">Update Gap Analysis</a>';
+    
+    if (!$is_skater) {
+        $edit_url = home_url('/edit-gap-analysis/' . $gap_id . '/');
+        echo '<a class="button" href="' . esc_url($edit_url) . '">Update Gap Analysis</a>';
+    }
 } else {
-    echo '<a class="button" href="' . esc_url(home_url('/create-gap-analysis/')) . '?skater_id=' . $skater_id . '">Create Gap Analysis</a>';
+    if (!$is_skater) {
+        echo '<a class="button" href="' . esc_url(home_url('/create-gap-analysis/')) . '?skater_id=' . $skater_id . '">Create Gap Analysis</a>';
+    }
 }
 echo '</div>';
 

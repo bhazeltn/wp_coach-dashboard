@@ -4,7 +4,9 @@
 $skater_id = $GLOBALS['skater_id'] ?? null;
 
 echo '<h2>Injury & Health Log</h2>';
-echo '<p><a class="button" href="' . esc_url(site_url('/create-injury-log')) . '">Add Injury Log</a></p>';
+if (!$is_skater) {
+    echo '<p><a class="button" href="' . esc_url(site_url('/create-injury-log')) . '">Add Injury Log</a></p>';
+}
 
 if (!$skater_id) {
     echo '<p>No skater context available.</p>';
@@ -81,7 +83,11 @@ foreach ($logs as $log) {
     echo '<td>' . esc_html($onset_display) . '</td>';
     echo '<td>' . esc_html($severity_display) . '</td>';
     echo '<td>' . esc_html($body_area_display) . '</td>';
-    echo '<td><a href="' . esc_url($view_link) . '">View</a> | <a href="' . esc_url($edit_link) . '">Update</a></td>';
+    if (!$is_skater) {
+        echo '<td><a href="' . esc_url($view_link) . '">View</a> | <a href="' . esc_url($edit_link) . '">Update</a></td>';
+    } else {
+        echo '<td><a href="' . esc_url($view_link) . '">View</a></td>';
+    }
     echo '</tr>';
 }
 

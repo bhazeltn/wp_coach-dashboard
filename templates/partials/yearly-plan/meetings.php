@@ -28,13 +28,18 @@ $meeting_query = new WP_Query([
         ]
     ],
 ]);
+
+$current_user = wp_get_current_user();
+$is_skater = in_array('skater', (array) $current_user->roles);
 ?>
 
 <hr>
 <div class="dashboard-box">
     <h3>📅 Meetings This Season</h3>
 
-    <p><a class="button" href="<?= esc_url(site_url('/create-meeting-log?skater_id=' . $skater->ID)) ?>">Add Meeting</a></p>
+    <?php if (!$is_skater): ?>
+        <p><a class="button" href="<?php echo esc_url(site_url('/create-meeting-log?skater_id=' . $skater->ID)); ?>">Add Meeting</a></p>
+    <?php endif; ?>
 
     <?php if ($meeting_query->have_posts()) : ?>
         <table class="dashboard-table">
@@ -60,12 +65,14 @@ $meeting_query = new WP_Query([
                     $types = is_array($types_raw) ? implode(', ', $types_raw) : ($types_raw ?: '—');
                     ?>
                     <tr>
-                        <td><?= esc_html($date_fmt) ?></td>
-                        <td><?= esc_html($title) ?></td>
-                        <td><?= esc_html($types) ?></td>
+                        <td><?php echo esc_html($date_fmt); ?></td>
+                        <td><?php echo esc_html($title); ?></td>
+                        <td><?php echo esc_html($types); ?></td>
                         <td>
-                            <a class="button-small" href="<?= esc_url(get_permalink()) ?>">View</a> |
-                            <a class="button-small" href="<?= esc_url(site_url('/edit-meeting-log/' . get_the_ID())) ?>">Update</a>
+                            <a class="button-small" href="<?php echo esc_url(get_permalink()); ?>">View</a>
+                            <?php if (!$is_skater): ?>
+                                | <a class="button-small" href="<?php echo esc_url(site_url('/edit-meeting-log/' . get_the_ID())); ?>">Update</a>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endwhile; ?>

@@ -5,6 +5,9 @@ $post_id = $post_id ?? get_the_ID();
 $skater = get_field('skater', $post_id)[0] ?? null;
 $skater_id = $skater ? $skater->ID : null;
 
+$current_user = wp_get_current_user();
+$is_skater = in_array('skater', (array) $current_user->roles);
+
 $weekly_plans = new WP_Query([
     'post_type'      => 'weekly_plan',
     'posts_per_page' => 5,
@@ -43,11 +46,13 @@ $weekly_plans = new WP_Query([
                         : '—';
                     ?>
                     <tr>
-                        <td><?= esc_html($date_fmt) ?></td>
-                        <td><?= esc_html(get_field('theme')) ?></td>
+                        <td><?php echo esc_html($date_fmt); ?></td>
+                        <td><?php echo esc_html(get_field('theme')); ?></td>
                         <td>
-                            <a class="button-small" href="<?= esc_url(get_permalink()) ?>">View</a> |
-                            <a class="button-small" href="<?= esc_url(site_url('/edit-weekly-plan/' . get_the_ID())) ?>">Update</a>
+                            <a class="button-small" href="<?php echo esc_url(get_permalink()); ?>">View</a>
+                            <?php if (!$is_skater): ?>
+                                | <a class="button-small" href="<?php echo esc_url(site_url('/edit-weekly-plan/' . get_the_ID())); ?>">Update</a>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endwhile; ?>
@@ -57,9 +62,9 @@ $weekly_plans = new WP_Query([
         <p>No Weekly Plans created yet.</p>
     <?php endif; ?>
 
-    <?php if ($skater_id) : ?>
+    <?php if ($skater_id && !$is_skater) : ?>
         <p>
-            <a class="button" href="<?= esc_url(site_url('/create-weekly-plan?skater_id=' . $skater_id . '&yearly_plan_id=' . $post_id)) ?>">
+            <a class="button" href="<?php echo esc_url(site_url('/create-weekly-plan?skater_id=' . $skater_id . '&yearly_plan_id=' . $post_id)); ?>">
                 Add Weekly Plan
             </a>
         </p>

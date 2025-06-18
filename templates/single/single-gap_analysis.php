@@ -13,7 +13,12 @@ $skater_slug = get_post_field('post_name', $skater_id);
   <h1><?= esc_html($skater_name); ?> – Gap Analysis</h1>
 
   <div class="button-row" style="margin-bottom: 1.5em;">
-    <a class="button" href="<?= esc_url(site_url('/edit-gap-analysis/' . $gap_id)) ?>">Update Gap Analysis</a>
+    <?php
+    $is_skater = in_array('skater', (array) $current_user->roles);
+    if (!$is_skater){
+      echo '<a class="button" href="<?= esc_url(site_url('/edit-gap-analysis/' . $gap_id)) ?>">Update Gap Analysis</a>';
+    }
+    ?>
     <a class="button" href="<?= esc_url(site_url('/skater/' . $skater_slug)) ?>">&larr; Back to Skater</a>
   </div>
 

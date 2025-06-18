@@ -5,7 +5,10 @@ $skater_id = $skater->ID;
 $GLOBALS['skater_id'] = $skater_id;
 
 echo '<h2>Competition Results</h2>';
-echo '<p><a class="button" href="' . esc_url(site_url('/create-competition-result?skater_id=' . $skater_id)) . '">Add Competition Result</a></p>';
+if (!$is_skater) {
+    echo '<p><a class="button" href="' . esc_url(site_url('/create-competition-result?skater_id=' . $skater_id)) . '">Add Competition Result</a></p>';
+}
+
 
 // Define current ISU season
 $season_year = (date('n') >= 7) ? date('Y') : date('Y') - 1;
@@ -130,7 +133,9 @@ if ($filtered) {
             echo '<td>' . $row['placement'] . '</td>';
 
             if ($i === 0) {
-                echo '<td><a href="' . esc_url(get_permalink($r->ID)) . '">View</a> | <a href="' . esc_url(site_url('/edit-competition-result/' . $r->ID . '/')) . '">Update</a></td>';
+                if (!$is_skater) {
+                    echo '<td><a href="' . esc_url(get_permalink($r->ID)) . '">View</a> | <a href="' . esc_url(site_url('/edit-competition-result/' . $r->ID . '/')) . '">Update</a></td>';
+                }
             } else {
                 echo '<td></td>';
             }

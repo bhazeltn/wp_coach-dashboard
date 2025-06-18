@@ -257,6 +257,3 @@ function spd_set_injury_log_title_on_create($post_id) {
 
     return $post_id;
 }
-
-
-

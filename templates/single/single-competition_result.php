@@ -130,8 +130,10 @@ if ($detail_sheets) {
 } else {
     echo '<p><em>No detail sheets uploaded.</em></p>';
 }
-
-echo '<p><a class="button" href="' . esc_url(site_url('/edit-competition-result/' . $result_id . '/')) . '">Update Result</a></p>';
+$is_skater = in_array('skater', (array) $current_user->roles);
+if (!$is_skater){
+    echo '<p><a class="button" href="' . esc_url(site_url('/edit-competition-result/' . $result_id . '/')) . '">Update Result</a></p>';
+}
 echo '</div>';
 
 get_footer();

@@ -41,7 +41,9 @@ $programs = get_posts([
 ]);
 
 echo '<h2>Programs</h2>';
-echo '<p><a class="button" href="' . esc_url(site_url('/create-program?skater_id=' . $skater_id)) . '">Add Program</a></p>';
+if (!$is_skater) {
+    echo '<p><a class="button" href="' . esc_url(site_url('/create-program?skater_id=' . $skater_id)) . '">Add Program</a></p>';
+}
 
 if (empty($programs)) {
     echo '<p>No programs created for this season.</p>';
@@ -56,8 +58,10 @@ if (empty($programs)) {
         echo '<td>' . esc_html($cat) . '</td>';
         echo '<td>' . esc_html($season_label) . '</td>';
         echo '<td>';
-        echo '<a class="button-small" href="' . esc_url(get_permalink($program)) . '">View</a> | ';
-        echo '<a class="button-small" href="' . esc_url(site_url('/edit-program/' . $program->ID)) . '">Edit</a>';
+        echo '<a class="button-small" href="' . esc_url(get_permalink($program)) . '">View</a>';
+        if (!$is_skater) {
+            echo '<a class="button-small" href="' . esc_url(site_url('/edit-program/' . $program->ID)) . '"> | Edit</a>';
+        }
         echo '</td></tr>';
     }
     echo '</tbody></table>';

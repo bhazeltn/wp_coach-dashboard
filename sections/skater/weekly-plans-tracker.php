@@ -18,7 +18,9 @@ $plans = new WP_Query([
 
 echo '<div class="dashboard-section">';
 echo '<h2>Weekly Plans</h2>';
-echo '<p><a class="button" href="' . esc_url(site_url('/create-weekly-plan/?skater_id=' . $skater_id)) . '">+ Add Weekly Plan</a></p>';
+if (!$is_skater) {
+    echo '<p><a class="button" href="' . esc_url(site_url('/create-weekly-plan/?skater_id=' . $skater_id)) . '">+ Add Weekly Plan</a></p>';
+}
 
 echo '<table class="dashboard-table">';
 echo '<thead><tr><th>Week Starting</th><th>Theme</th><th>Actions</th></tr></thead>';
@@ -38,8 +40,10 @@ if ($plans->have_posts()) {
         echo '<td>' . esc_html($formatted) . '</td>';
         echo '<td>' . esc_html($theme) . '</td>';
         echo '<td>';
-        echo '<a class="button-small" href="' . esc_url(get_permalink()) . '">View</a> | ';
-        echo '<a class="button-small" href="' . esc_url(site_url('/edit-weekly-plan/' . get_the_ID())) . '">Update</a>';
+        echo '<a class="button-small" href="' . esc_url(get_permalink()) . '">View</a>';
+        if (!$is_skater) {
+            echo '<a class="button-small" href="' . esc_url(site_url('/edit-weekly-plan/' . get_the_ID())) . '"> | Update</a>';
+        }
         echo '</td>';
         echo '</tr>';
     }

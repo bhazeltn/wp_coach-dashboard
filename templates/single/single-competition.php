@@ -88,7 +88,10 @@ if (empty($results)) {
         echo '<td>' . $placement_display . '</td>';
         echo '<td>' . ($has_sheet ? '✔️' : '—') . '</td>';
         echo '<td>' . $score_display . '</td>';
-        echo '<td><a href="' . esc_url(get_permalink($res_id)) . '">View</a> | <a href="' . esc_url(site_url('/edit-competition-result/' . $res_id . '/')) . '">Update</a></td>';
+        $is_skater = in_array('skater', (array) $current_user->roles);
+        if (!$is_skater){
+            echo '<td><a href="' . esc_url(get_permalink($res_id)) . '">View</a> | <a href="' . esc_url(site_url('/edit-competition-result/' . $res_id . '/')) . '">Update</a></td>';
+        }
         echo '</tr>';
     }
     

@@ -86,8 +86,13 @@ foreach ($results_query as $result) {
     <?php else : ?>
         <p>No Upcoming Competitions Planned. Please <a href="<?= esc_url(admin_url('post-new.php?post_type=competition_result')) ?>">add competitions for this skater</a>.</p>
     <?php endif; ?>
-
-    <p><a class="button" href="<?= esc_url(admin_url('post-new.php?post_type=competition_result')) ?>">Add Competition</a></p>
+    
+    <?php
+    $is_skater = in_array('skater', (array) $current_user->roles);
+    if (!$is_skater) {
+        echo '<p><a class="button" href="' . esc_url(admin_url('post-new.php?post_type=competition_result')) . '">Add Competition</a></p>';
+    }
+    ?>
 </div>
 
 <hr>
@@ -116,6 +121,11 @@ foreach ($results_query as $result) {
     <?php else : ?>
         <p>No Competition Results Yet This Season.</p>
     <?php endif; ?>
+    <?php
+    $is_skater = in_array('skater', (array) $current_user->roles);
+    if (!$is_skater) {
+        echo '<p><a class="button" href="' . esc_url(admin_url('post-new.php?post_type=competition_result')) . '">Add Competition Result</a></p>';
+    }
+    ?>
 
-    <p><a class="button" href="<?= esc_url(admin_url('post-new.php?post_type=competition_result')) ?>">Add Competition Result</a></p>
 </div>

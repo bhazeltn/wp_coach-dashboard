@@ -3,6 +3,76 @@
  * Custom rewrite rules, query vars, and template overrides for special pages.
  */
 
+ add_filter('login_redirect', function ($redirect_to, $request, $user) {
+    if (!($user instanceof WP_User)) return $redirect_to;
+
+    $roles = (array) $user->roles;
+
+    if (in_array('administrator', $roles) || in_array('coach', $roles)) {
+        return site_url('/coach-dashboard/');
+    }
+
+    if (in_array('skater', $roles)) {
+        $skater = get_posts([
+            'post_type'     => 'skater',
+            'numberposts'   => 1,
+            'meta_key'      => 'skater_account',
+            'meta_value'    => $user->ID,
+            'meta_compare'  => '=',
+            'post_status'   => 'publish',
+        ]);
+
+        if ($skater) {
+            $slug = get_post_field('post_name', $skater[0]->ID);
+            return site_url('/skater/' . $slug);
+        }
+
+        return home_url('/');
+    }
+
+    return $redirect_to;
+}, 10, 3);
+
+add_action('template_redirect', function () {
+    if ((is_front_page() || is_home()) && !is_admin()) {
+        if (!is_user_logged_in()) {
+            // Not logged in → send to login
+            wp_redirect(wp_login_url(home_url()));
+            exit;
+        }
+
+        $user = wp_get_current_user();
+        $roles = (array) $user->roles;
+
+        $current_url = $_SERVER['REQUEST_URI'];
+
+        if ((in_array('coach', $roles) || in_array('administrator', $roles)) &&
+            strpos($current_url, '/coach-dashboard') === false) {
+            wp_redirect(home_url('/coach-dashboard/'));
+            exit;
+        }
+
+        if (in_array('skater', $roles) && strpos($current_url, '/skater/') === false) {
+            $skater = get_posts([
+                'post_type'     => 'skater',
+                'numberposts'   => 1,
+                'meta_key'      => 'skater_account',
+                'meta_value'    => $user->ID,
+                'meta_compare'  => '=',
+                'post_status'   => 'publish',
+            ]);
+
+            if ($skater) {
+                $slug = get_post_field('post_name', $skater[0]->ID);
+                wp_redirect(site_url('/skater/' . $slug));
+                exit;
+            }
+        }
+    }
+});
+
+
+
 // === Rewrite Rules ===
 
 function spd_add_custom_rewrite_rules() {
@@ -249,19 +319,6 @@ add_action('template_redirect', function () {
     $slug = get_query_var('skater_view');
     if ($slug && substr($_SERVER['REQUEST_URI'], -1) !== '/') {
         wp_safe_redirect(home_url('/skater/' . $slug . '/'), 301);
-        exit;
-    }
-});
-
-// === Redirect Root Requests to Coach Dashboard or Login ===
-
-add_action('template_redirect', function () {
-    if ((is_front_page() || is_home()) && !is_admin()) {
-        if (is_user_logged_in()) {
-            wp_redirect(home_url('/coach-dashboard/'), 301);
-        } else {
-            wp_redirect(wp_login_url(home_url('/coach-dashboard/')), 302);
-        }
         exit;
     }
 });

@@ -52,7 +52,14 @@ foreach ($injury_logs as $log) {
 <div class="dashboard-box">
     <h3>🩹 Injury & Health Log</h3>
 
-    <p><a class="button" href="<?= esc_url(site_url('/create-injury-log?skater_id=' . $skater->ID)) ?>">Add Injury Log</a></p>
+    <?php
+    $is_skater = in_array('skater', (array) $current_user->roles);
+    if (!$is_skater) {
+        echo '<p><a class="button" href="' . esc_url(site_url('/create-injury-log?skater_id=' . $skater->ID)) . '">Add Injury Log</a></p>';
+    }
+    ?>
+
+
 
     <?php if (empty($season_injuries)) : ?>
         <p>No injuries recorded during this training season.</p>

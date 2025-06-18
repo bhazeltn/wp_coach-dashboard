@@ -72,7 +72,11 @@ if ($upcoming) {
         echo '<td>' . esc_html($level) . '</td>';
         echo '<td>' . esc_html($discipline) . '</td>';
         echo '<td>' . esc_html($location) . '</td>';
-        echo '<td><a href="' . esc_url($view_url) . '">View</a> | <a href="' . esc_url($edit_url) . '">Update</a></td>';
+        if (!$is_skater) {
+            echo '<td><a href="' . esc_url($view_url) . '">View</a> | <a href="' . esc_url($edit_url) . '">Update</a></td>';
+        } else {
+            echo '<td><a href="' . esc_url($view_url) . '">View</a></td>';
+        }
         echo '</tr>';
 
     }
@@ -83,4 +87,7 @@ if ($upcoming) {
 }
 
 // Button to add new competition
-echo '<p><a class="button" href="' . esc_url(site_url('/create-competition')) . '">Add Competition</a></p>';
+if (!$is_skater) {
+    echo '<p><a class="button" href="' . esc_url(site_url('/create-competition')) . '">Add Competition</a></p>';
+}
+

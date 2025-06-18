@@ -112,7 +112,10 @@ if ($sessions && is_array($sessions)) {
     echo '</tbody></table>';
 }
 
-echo '<p><a class="button" href="' . esc_url(site_url('/edit-weekly-plan/' . get_the_ID())) . '">Update This Plan</a></p>';
+$is_skater = in_array('skater', (array) $current_user->roles);
+if (!$is_skater){
+    echo '<p><a class="button" href="' . esc_url(site_url('/edit-weekly-plan/' . get_the_ID())) . '">Update This Plan</a></p>';
+}
 echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">Back to Dashboard</a></p>';
 echo '</div>';
 
