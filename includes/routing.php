@@ -6,6 +6,45 @@
  add_filter('login_redirect', function ($redirect_to, $request, $user) {
     if (!($user instanceof WP_User)) return $redirect_to;
 
+    error_log('🔁 login_redirect fired for: ' . $user->user_login);
+    error_log('🔁 Roles: ' . implode(', ', (array) $user->roles));
+
+    $roles = (array) $user->roles;
+
+    if (in_array('administrator', $roles) || in_array('coach', $roles)) {
+        error_log('✅ Redirecting to coach-dashboard');
+        return site_url('/coach-dashboard/');
+    }
+
+    if (in_array('skater', $roles)) {
+        error_log('🛼 Looking for skater CPT linked to user ID ' . $user->ID);
+        $skater = get_posts([
+            'post_type'     => 'skater',
+            'numberposts'   => 1,
+            'meta_key'      => 'skater_account',
+            'meta_value'    => $user->ID,
+            'meta_compare'  => '=',
+            'post_status'   => 'publish',
+        ]);
+
+        if ($skater) {
+            $slug = get_post_field('post_name', $skater[0]->ID);
+            $redirect_url = site_url('/skater/' . $slug);
+            error_log('✅ Skater found: ' . $slug . ' → redirecting to: ' . $redirect_url);
+            return $redirect_url;
+        } else {
+            error_log('❌ No skater post linked to this user.');
+        }
+
+        return home_url('/');
+    }
+
+    return $redirect_to;
+}, 10, 3);
+
+ add_filter('login_redirect', function ($redirect_to, $request, $user) {
+    if (!($user instanceof WP_User)) return $redirect_to;
+
     $roles = (array) $user->roles;
 
     if (in_array('administrator', $roles) || in_array('coach', $roles)) {
@@ -46,8 +85,9 @@ add_action('template_redirect', function () {
 
         $current_url = $_SERVER['REQUEST_URI'];
 
+        // Allow coaches/admins to view skater pages too
         if ((in_array('coach', $roles) || in_array('administrator', $roles)) &&
-            strpos($current_url, '/coach-dashboard') === false) {
+            !preg_match('#^/coach-dashboard|/skater/#', $current_url)) {
             wp_redirect(home_url('/coach-dashboard/'));
             exit;
         }
@@ -70,6 +110,7 @@ add_action('template_redirect', function () {
         }
     }
 });
+
 
 
 
