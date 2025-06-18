@@ -4,24 +4,19 @@
 echo '<div class="dashboard-section">';
 echo '<h2>Yearly Training Plans</h2>';
 
-$today = date('Ymd');
+$today       = date('Ymd');
 $near_future = date('Ymd', strtotime('+30 days'));
 
-$skaters = get_posts([
-    'post_type'   => 'skater',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-    'orderby'     => 'title',
-    'order'       => 'ASC',
-]);
+$visible     = spd_get_visible_skaters();
+$visible_ids = wp_list_pluck($visible, 'ID');
 
-if (!$skaters) {
-    echo '<p>No skaters found.</p>';
+if (empty($visible_ids)) {
+    echo '<p>No skaters assigned to you.</p>';
     echo '</div>';
     return;
 }
 
-foreach ($skaters as $skater) {
+foreach ($visible as $skater) {
     $skater_id = $skater->ID;
     $plans = get_posts([
         'post_type'   => 'yearly_plan',
@@ -75,7 +70,7 @@ foreach ($skaters as $skater) {
         $end_fmt   = $dates['end_date']   ? DateTime::createFromFormat('d/m/Y', $dates['end_date'])?->format('M j, Y') : '—';
         $season    = $start_fmt . ' – ' . $end_fmt;
 
-        $peak_type = $peak['peak_type'] ?? '—';
+        $peak_type    = $peak['peak_type'] ?? '—';
         $primary_peak = isset($peak['primary_peak_event'][0]) ? get_the_title($peak['primary_peak_event'][0]) : '—';
         $goal_summary = $goal ? wp_trim_words(strip_tags($goal), 20, '...') : '—';
 

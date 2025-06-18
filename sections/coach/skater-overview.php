@@ -4,12 +4,7 @@
 echo '<h2>Skater Overview</h2>';
 echo '<p><a class="button button-primary" href="' . esc_url(site_url('/create-skater')) . '">Add New Skater</a></p>';
 
-
-$skaters = get_posts([
-    'post_type'   => 'skater',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-]);
+$skaters = spd_get_visible_skaters();
 
 if (empty($skaters)) {
     echo '<p>No skaters found.</p>';

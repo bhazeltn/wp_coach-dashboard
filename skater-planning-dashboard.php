@@ -22,6 +22,7 @@ include_once plugin_dir_path(__FILE__) . 'includes/cpt-gap_analysis.php';
 include_once plugin_dir_path(__FILE__) . 'includes/routing.php';
 include_once plugin_dir_path(__FILE__) . 'includes/acf-redirects.php';
 include_once plugin_dir_path(__FILE__) . 'includes/helper-functions.php';
+include_once plugin_dir_path(__FILE__) . 'includes/permissions.php';
 include_once plugin_dir_path(__FILE__) . 'includes/coach-sections.php';
 
 // === Conditional Style Loader (based on route context) ===

@@ -4,12 +4,14 @@
 echo '<h2>Competition Results</h2>';
 
 $today = date('Y-m-d');
+$visible_ids = wp_list_pluck(spd_get_visible_skaters(), 'ID');
 
-// Fetch all competition results
+// Fetch all competition results visible to the current coach
 $results = get_posts([
     'post_type'   => 'competition_result',
     'numberposts' => -1,
     'post_status' => 'publish',
+    'meta_query'  => spd_meta_query_for_visible_skaters('linked_skater', $visible_ids),
 ]);
 
 if (empty($results)) {
@@ -17,7 +19,7 @@ if (empty($results)) {
     return;
 }
 
-// Group results by past competitions
+// Group results by competition
 $grouped = [];
 
 foreach ($results as $result) {
@@ -26,20 +28,20 @@ foreach ($results as $result) {
     if (!$comp || !is_object($comp)) continue;
 
     $comp_date = get_field('competition_date', $comp->ID);
-    if (!$comp_date || $comp_date > $today) continue; // Skip upcoming events
+    if (!$comp_date || $comp_date > $today) continue;
 
     $grouped[$comp->ID]['competition'] = $comp;
     $grouped[$comp->ID]['results'][] = $result;
 }
 
-// Sort by competition date
+// Sort competitions by date
 uasort($grouped, function ($a, $b) {
     $dateA = get_field('competition_date', $a['competition']->ID);
     $dateB = get_field('competition_date', $b['competition']->ID);
     return strtotime($dateA) - strtotime($dateB);
 });
 
-// Display each group
+// Display each competition and its results
 foreach ($grouped as $comp_data) {
     $comp = $comp_data['competition'];
     $comp_id = $comp->ID;
@@ -60,13 +62,13 @@ foreach ($grouped as $comp_data) {
         </tr></thead><tbody>';
 
     foreach ($comp_data['results'] as $result) {
-        $skater = get_field('skater', $result->ID);
+        $skater = get_field('linked_skater', $result->ID);
         $skater = is_array($skater) ? ($skater[0] ?? null) : $skater;
 
         $level      = get_field('level', $result->ID) ?: '—';
         $discipline = get_field('discipline', $result->ID) ?: '—';
 
-        // Placement and score handling
+        // Placement and score
         $placement_display = '—';
         $medal = '';
         $total = null;
@@ -76,20 +78,24 @@ foreach ($grouped as $comp_data) {
             $placement = $comp_score['placement'] ?? null;
             if ($placement) {
                 $placement_display = $placement;
-                if ((int)$placement === 1) $medal = ' 🥇';
-                elseif ((int)$placement === 2) $medal = ' 🥈';
-                elseif ((int)$placement === 3) $medal = ' 🥉';
+                $medal = match ((int)$placement) {
+                    1 => ' 🥇',
+                    2 => ' 🥈',
+                    3 => ' 🥉',
+                    default => '',
+                };
             }
 
             $total = $comp_score['total_competition_score'] ?? null;
         }
 
+        // Fallback to segment total if needed
         if (!$total) {
             $sp_score = get_field('sp_score_place', $result->ID);
             $fs_score = get_field('fs_score', $result->ID);
-            if (is_array($sp_score) && !empty($sp_score['short_program_score'])) {
+            if (!empty($sp_score['short_program_score'])) {
                 $total = $sp_score['short_program_score'];
-            } elseif (is_array($fs_score) && !empty($fs_score['free_program_score'])) {
+            } elseif (!empty($fs_score['free_program_score'])) {
                 $total = $fs_score['free_program_score'];
             }
         }

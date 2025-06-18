@@ -3,17 +3,35 @@
 
 echo '<h2>Coach Summary: Injury & Health Logs</h2>';
 
+// Get visible skater IDs for the logged-in user
+$visible      = spd_get_visible_skaters();
+$visible_ids  = wp_list_pluck($visible, 'ID');
+
+// Build meta query
+$meta_clauses = array_map(function($id) {
+    return [
+        'key'     => 'injured_skater',
+        'value'   => '"' . $id . '"',
+        'compare' => 'LIKE',
+    ];
+}, $visible_ids);
+
+// Fetch injury logs for visible skaters
 $logs = get_posts([
     'post_type'   => 'injury_log',
     'numberposts' => -1,
     'post_status' => 'publish',
+    'meta_query'  => [
+        'relation' => 'OR',
+        ...$meta_clauses,
+    ],
     'meta_key'    => 'date_of_onset',
     'orderby'     => 'meta_value',
     'order'       => 'DESC',
 ]);
 
 if (empty($logs)) {
-    echo '<p>No injuries or health concerns logged.</p>';
+    echo '<p>No injuries or health concerns logged for assigned skaters.</p>';
     return;
 }
 

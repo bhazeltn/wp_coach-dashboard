@@ -26,6 +26,27 @@ function coach_format_date_safe($date) {
     return function_exists('coach_format_date') ? coach_format_date($date) : $date;
 }
 
+// --- Determine visible skaters
+$visible      = spd_get_visible_skaters();
+$visible_ids  = wp_list_pluck($visible, 'ID');
+
+if (empty($visible_ids)) {
+    echo '<p>No skaters assigned to your account.</p>';
+    return;
+}
+
+// Meta query clause for filtering goals by skater
+$skater_clause = [
+    'relation' => 'OR',
+    ...array_map(function($id) {
+        return [
+            'key'     => 'skater',
+            'value'   => '"' . $id . '"',
+            'compare' => 'LIKE'
+        ];
+    }, $visible_ids)
+];
+
 //
 // --- Mid/Long-Term Goals
 //
@@ -36,6 +57,8 @@ $long_goals = get_posts([
     'numberposts' => -1,
     'post_status' => 'publish',
     'meta_query'  => [
+        'relation' => 'AND',
+        $skater_clause,
         [
             'key'     => 'goal_timeframe',
             'value'   => ['long', 'medium', 'season'],
@@ -93,12 +116,13 @@ $weekly_goals = get_posts([
     'numberposts' => -1,
     'post_status' => 'publish',
     'meta_query'  => [
+        'relation' => 'AND',
+        $skater_clause,
         [
             'key'     => 'goal_timeframe',
             'value'   => ['week', 'micro'],
             'compare' => 'IN'
         ],
-       
         [
             'key'     => 'target_date',
             'value'   => [
@@ -153,24 +177,28 @@ $missed_goals = get_posts([
     'numberposts' => -1,
     'post_status' => 'publish',
     'meta_query'  => [
-        'relation' => 'OR',
+        'relation' => 'AND',
+        $skater_clause,
         [
-            'key'     => 'current_status',
-            'value'   => ['Abandoned', 'On Hold'],
-            'compare' => 'IN'
-        ],
-        [
-            'relation' => 'AND',
-            [
-                'key'     => 'target_date',
-                'value'   => date('Y-m-d'),
-                'compare' => '<',
-                'type'    => 'DATE'
-            ],
+            'relation' => 'OR',
             [
                 'key'     => 'current_status',
-                'value'   => 'Achieved',
-                'compare' => '!=',
+                'value'   => ['Abandoned', 'On Hold'],
+                'compare' => 'IN'
+            ],
+            [
+                'relation' => 'AND',
+                [
+                    'key'     => 'target_date',
+                    'value'   => date('Y-m-d'),
+                    'compare' => '<',
+                    'type'    => 'DATE'
+                ],
+                [
+                    'key'     => 'current_status',
+                    'value'   => 'Achieved',
+                    'compare' => '!=',
+                ]
             ]
         ]
     ],

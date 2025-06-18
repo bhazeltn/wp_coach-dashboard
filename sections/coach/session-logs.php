@@ -1,15 +1,36 @@
 <?php
+// --- Coach Dashboard: Recent Session Logs ---
+
+$visible      = spd_get_visible_skaters();
+$visible_ids  = wp_list_pluck($visible, 'ID');
+
+// If no visible skaters, skip
+if (empty($visible_ids)) {
+    echo '<p>No session logs available for assigned skaters.</p>';
+    return;
+}
+
 $sessions = new WP_Query([
     'post_type'      => 'session_log',
     'posts_per_page' => 10,
-    'meta_key'       => 'session_date',
     'orderby'        => 'meta_value',
+    'meta_key'       => 'session_date',
     'order'          => 'DESC',
+    'meta_query'     => [
+        'relation' => 'OR',
+        ...array_map(function($id) {
+            return [
+                'key'     => 'skater',
+                'value'   => '"' . $id . '"',
+                'compare' => 'LIKE',
+            ];
+        }, $visible_ids),
+    ],
 ]);
 
+echo '<div class="dashboard-section">';
+echo '<h2>Recent Session Logs</h2>';
 if ($sessions->have_posts()) {
-    echo '<div class="dashboard-section">';
-    echo '<h2>Recent Session Logs</h2>';
     echo '<table class="dashboard-table">';
     echo '<thead><tr>';
     echo '<th>Date</th>';
@@ -23,12 +44,10 @@ if ($sessions->have_posts()) {
     while ($sessions->have_posts()) {
         $sessions->the_post();
 
-        // Date
         $date_raw = get_field('session_date');
         $date_obj = DateTime::createFromFormat('d/m/Y', $date_raw);
         $formatted_date = $date_obj ? $date_obj->format('M j, Y') : esc_html($date_raw);
 
-        // Skaters
         $skaters = get_field('skater');
         $skater_names = [];
         if ($skaters) {
@@ -37,8 +56,7 @@ if ($sessions->have_posts()) {
             }
         }
 
-        // Energy & Wellbeing
-        $energy = get_field('energy_stamina');
+        $energy    = get_field('energy_stamina');
         $wellbeing = get_field('wellbeing_focus_check-in');
         if (is_array($wellbeing)) {
             $wellbeing = implode(', ', $wellbeing);
@@ -59,4 +77,6 @@ if ($sessions->have_posts()) {
     echo '</tbody></table>';
     echo '</div>';
     wp_reset_postdata();
+} else {
+    echo '<p>No recent session logs found for assigned skaters.</p>';
 }
