@@ -3,7 +3,7 @@
  * Custom rewrite rules, query vars, and template overrides for special pages.
  */
 
- add_filter('login_redirect', function ($redirect_to, $request, $user) {
+add_filter('login_redirect', function ($redirect_to, $request, $user) {
     if (!($user instanceof WP_User)) return $redirect_to;
 
     error_log('🔁 login_redirect fired for: ' . $user->user_login);
@@ -42,35 +42,6 @@
     return $redirect_to;
 }, 10, 3);
 
- add_filter('login_redirect', function ($redirect_to, $request, $user) {
-    if (!($user instanceof WP_User)) return $redirect_to;
-
-    $roles = (array) $user->roles;
-
-    if (in_array('administrator', $roles) || in_array('coach', $roles)) {
-        return site_url('/coach-dashboard/');
-    }
-
-    if (in_array('skater', $roles)) {
-        $skater = get_posts([
-            'post_type'     => 'skater',
-            'numberposts'   => 1,
-            'meta_key'      => 'skater_account',
-            'meta_value'    => $user->ID,
-            'meta_compare'  => '=',
-            'post_status'   => 'publish',
-        ]);
-
-        if ($skater) {
-            $slug = get_post_field('post_name', $skater[0]->ID);
-            return site_url('/skater/' . $slug);
-        }
-
-        return home_url('/');
-    }
-
-    return $redirect_to;
-}, 10, 3);
 
 add_action('template_redirect', function () {
     if ((is_front_page() || is_home()) && !is_admin()) {
@@ -87,10 +58,10 @@ add_action('template_redirect', function () {
 
         // Allow coaches/admins to view skater pages too
         if ((in_array('coach', $roles) || in_array('administrator', $roles)) &&
-            !preg_match('#^/coach-dashboard|/skater/#', $current_url)) {
-            wp_redirect(home_url('/coach-dashboard/'));
-            exit;
-        }
+    !preg_match('#^/(coach-dashboard|skater|edit|create)#', $current_url)) {
+    wp_redirect(home_url('/coach-dashboard/'));
+    exit;
+}
 
         if (in_array('skater', $roles) && strpos($current_url, '/skater/') === false) {
             $skater = get_posts([
@@ -153,6 +124,12 @@ function spd_add_custom_rewrite_rules() {
     add_rewrite_rule('^edit-gap-analysis/([0-9]+)/?$', 'index.php?edit_gap_analysis=$matches[1]', 'top');
 }
 add_action('init', 'spd_add_custom_rewrite_rules');
+
+add_action('template_redirect', function () {
+    if (get_query_var('edit_skater')) {
+        error_log('✅ edit_skater triggered: ' . get_query_var('edit_skater'));
+    }
+});
 
 // === Register Custom Query Vars ===
 
