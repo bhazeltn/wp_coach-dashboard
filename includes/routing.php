@@ -3,6 +3,61 @@
  * Custom rewrite rules, query vars, and template overrides for special pages.
  */
 
+add_action('template_redirect', function () {
+    // Get the current URL path without any query strings
+    $current_path = strtok($_SERVER["REQUEST_URI"], '?');
+
+    // Check if the current path is one of our plugin's internal pages
+    $is_app_page = preg_match('#^/(coach-dashboard|skater/|edit-|create-|view-all-)#', $current_path);
+
+    // If the user is on one of our app's pages, do nothing here. Let the rest of the plugin handle it.
+    // This is the key change that breaks the redirect loop.
+    if ($is_app_page) {
+        return;
+    }
+
+    // --- The logic below only runs on pages that are NOT part of our app (like the homepage) ---
+
+    // For non-logged-in users on the front page, show the landing page template.
+    if (!is_user_logged_in() && is_front_page()) {
+        include plugin_dir_path(__DIR__) . '/templates/front-page.php';
+        exit;
+    }
+
+    // For logged-in users on the front page, redirect them to their correct dashboard.
+    if (is_user_logged_in() && is_front_page()) {
+        $user = wp_get_current_user();
+        $roles = (array) $user->roles;
+
+        if (in_array('administrator', $roles) || in_array('coach', $roles)) {
+            wp_redirect(home_url('/coach-dashboard/'));
+            exit;
+        }
+
+        if (in_array('skater', $roles)) {
+            $skater = get_posts([
+                'post_type'   => 'skater',
+                'numberposts' => 1,
+                'meta_key'    => 'skater_account',
+                'meta_value'  => $user->ID,
+            ]);
+            if ($skater) {
+                wp_redirect(site_url('/skater/' . $skater[0]->post_name));
+                exit;
+            }
+        }
+        // Fallback for any other logged-in role if needed
+        wp_redirect(home_url('/coach-dashboard/'));
+        exit;
+    }
+
+    // Finally, if a non-logged-in user tries to access any other random page, protect it.
+    if (!is_user_logged_in()) {
+        auth_redirect();
+    }
+});
+
+
 add_filter('login_redirect', function ($redirect_to, $request, $user) {
     if (!($user instanceof WP_User)) return $redirect_to;
 
@@ -41,48 +96,6 @@ add_filter('login_redirect', function ($redirect_to, $request, $user) {
 
     return $redirect_to;
 }, 10, 3);
-
-
-add_action('template_redirect', function () {
-    if ((is_front_page() || is_home()) && !is_admin()) {
-        if (!is_user_logged_in()) {
-            // Not logged in → send to login
-            wp_redirect(wp_login_url(home_url()));
-            exit;
-        }
-
-        $user = wp_get_current_user();
-        $roles = (array) $user->roles;
-
-        $current_url = $_SERVER['REQUEST_URI'];
-
-        // Allow coaches/admins to view skater pages too
-        if ((in_array('coach', $roles) || in_array('administrator', $roles)) &&
-    !preg_match('#^/(coach-dashboard|skater|edit|create)#', $current_url)) {
-    wp_redirect(home_url('/coach-dashboard/'));
-    exit;
-}
-
-        if (in_array('skater', $roles) && strpos($current_url, '/skater/') === false) {
-            $skater = get_posts([
-                'post_type'     => 'skater',
-                'numberposts'   => 1,
-                'meta_key'      => 'skater_account',
-                'meta_value'    => $user->ID,
-                'meta_compare'  => '=',
-                'post_status'   => 'publish',
-            ]);
-
-            if ($skater) {
-                $slug = get_post_field('post_name', $skater[0]->ID);
-                wp_redirect(site_url('/skater/' . $slug));
-                exit;
-            }
-        }
-    }
-});
-
-
 
 
 // === Rewrite Rules ===
