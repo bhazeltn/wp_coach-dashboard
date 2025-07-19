@@ -2,7 +2,7 @@
 /**
  * Template: Coach View of a Specific Skater
  */
-
+include plugin_dir_path(__FILE__) . 'partials/header-dashboard.php';
 if (!is_user_logged_in()) {
     auth_redirect();
 }

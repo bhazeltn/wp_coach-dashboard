@@ -2,10 +2,7 @@
 /**
  * Template: Coach Dashboard View (Frontend Routed)
  */
-
-if (!is_user_logged_in()) {
-    auth_redirect();
-}
+include plugin_dir_path(__FILE__) . 'partials/header-dashboard.php';
 
 $current_user = wp_get_current_user();
 if (!in_array('coach', (array) $current_user->roles) && !in_array('administrator', (array) $current_user->roles)) {
