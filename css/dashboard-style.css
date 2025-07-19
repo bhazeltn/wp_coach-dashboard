@@ -1,4 +1,16 @@
 /* ===================================================================
+   CoachOS Stylesheet
+   Version: 1.0
+   
+   TABLE OF CONTENTS
+   1. GLOBAL STYLES & VARIABLES
+   2. LAYOUT & STRUCTURE
+   3. TYPOGRAPHY
+   4. UI COMPONENTS (Buttons, Tables, Cards, Forms)
+   5. PAGE & SECTION SPECIFIC STYLES
+=================================================================== */
+
+/* ===================================================================
    1. GLOBAL STYLES & VARIABLES
 =================================================================== */
 
@@ -18,6 +30,12 @@
   --border-color: #e2e8f0;
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
@@ -60,7 +78,7 @@ body {
   margin-top: 4rem;
 }
 
-/* Container for full-width sections */
+/* Container for full-width sections on the landing page */
 .section-inner {
   max-width: 1200px;
   margin-left: auto;
@@ -79,27 +97,32 @@ h3,
 h4 {
   font-weight: 700;
   line-height: 1.2;
+  color: var(--text-dark);
 }
 
 h1 {
   font-size: 2.2rem;
-  margin-bottom: 1rem;
+  margin: 0 0 1rem 0;
 }
 
 h2 {
   font-size: 1.5rem;
-  margin-top: 2.5rem;
+  margin: 2.5rem 0 1.5rem 0;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.5rem;
 }
 
 h3 {
   font-size: 1.3rem;
-  margin-top: 1.5rem;
+  margin: 1.5rem 0 1rem 0;
 }
 
 h4 {
   font-size: 1.1rem;
+}
+
+p {
+  margin: 0 0 1rem 0;
 }
 
 a {
@@ -145,6 +168,8 @@ a:hover {
   font-weight: 600;
   border: none;
   cursor: pointer;
+  text-decoration: none;
+  text-align: center;
   transition: background-color 0.2s ease;
 }
 
@@ -183,7 +208,7 @@ a:hover {
 
 .dashboard-table th,
 .widefat th {
-  background-color: #f7fafc;
+  background-color: #fcfcfd;
   padding: 12px 16px;
   text-align: left;
   font-weight: 600;
@@ -202,11 +227,6 @@ a:hover {
   border-bottom: none;
 }
 
-.dashboard-table tbody tr:nth-child(odd),
-.widefat tbody tr:nth-child(odd) {
-  background-color: #fafafa;
-}
-
 /* --- Cards & Blocks --- */
 .plan-card,
 .dashboard-box {
@@ -219,7 +239,9 @@ a:hover {
 }
 
 .plan-card h3,
-.dashboard-box h3 {
+.dashboard-box h3,
+.plan-card h4,
+.dashboard-box h4 {
   margin-top: 0;
 }
 
@@ -227,14 +249,32 @@ a:hover {
   margin-top: 1.5em;
 }
 
-/* --- Forms --- */
+/* --- Forms (ACF) --- */
+.acf-form {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+}
+
+.acf-field {
+  padding: 20px;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.acf-form>.acf-fields>.acf-field:last-of-type {
+  border-bottom: none;
+}
+
 .acf-field input[type="text"],
+.acf-field input[type="date"],
 .acf-field textarea,
 .acf-field select {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  border: 1px solid #ccd0d4;
+  border-radius: 4px;
   background-color: #fff;
   font-family: var(--font-family);
   font-size: 1rem;
@@ -244,12 +284,18 @@ a:hover {
 .acf-field textarea:focus,
 .acf-field select:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-  outline: none;
+  box-shadow: 0 0 0 1px var(--primary-color);
+  outline: 2px solid transparent;
 }
 
 .acf-field .acf-label {
   margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.acf-form-submit {
+  padding: 20px;
+  margin-top: 1rem;
 }
 
 /* ===================================================================
@@ -265,8 +311,6 @@ a:hover {
 }
 
 .landing-hero h1 {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
   color: white;
 }
 
@@ -287,7 +331,6 @@ a:hover {
 }
 
 .landing-features h2 {
-  font-size: 2rem;
   margin-bottom: 3rem;
 }
 
@@ -307,7 +350,6 @@ a:hover {
 
 .feature-card h3 {
   font-size: 1.25rem;
-  margin-top: 0;
 }
 
 .landing-cta {
@@ -318,8 +360,6 @@ a:hover {
 }
 
 .landing-cta h2 {
-  font-size: 2rem;
-  margin-bottom: 1rem;
   color: white;
 }
 
@@ -349,6 +389,7 @@ a:hover {
   padding: 1em;
   border: 1px solid var(--border-color);
   background: #f9f9f9;
+  border-radius: 6px;
 }
 
 .macrocycle-toggle summary {
@@ -359,6 +400,6 @@ a:hover {
 }
 
 .macro-separator {
-  border-top: 2px solid #bbb;
+  border-top: 1px solid var(--border-color);
   margin: 2em 0 1em;
 }

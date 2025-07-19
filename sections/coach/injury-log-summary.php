@@ -1,96 +1,131 @@
 <?php
-// --- Coach Dashboard: Injury Log Summary ---
+/**
+ * Coach Dashboard Section: Current Injury & Health Log Summary
+ * This template has been refactored to show all non-resolved injuries.
+ */
 
-echo '<h2>Coach Summary: Injury & Health Logs</h2>';
+// --- 1. PREPARE DATA ---
+$visible_skater_ids = wp_list_pluck(spd_get_visible_skaters(), 'ID');
+$logs_data = [];
 
-// Get visible skater IDs for the logged-in user
-$visible      = spd_get_visible_skaters();
-$visible_ids  = wp_list_pluck($visible, 'ID');
+if (!empty($visible_skater_ids)) {
+    // Build the meta query to find logs for any of the visible skaters.
+    $skater_meta_query = ['relation' => 'OR'];
+    foreach ($visible_skater_ids as $skater_id) {
+        $skater_meta_query[] = [
+            'key'     => 'injured_skater',
+            'value'   => '"' . $skater_id . '"',
+            'compare' => 'LIKE',
+        ];
+    }
 
-// Build meta query
-$meta_clauses = array_map(function($id) {
-    return [
-        'key'     => 'injured_skater',
-        'value'   => '"' . $id . '"',
-        'compare' => 'LIKE',
+    // Fetch ALL injury logs that are NOT marked as 'resolved'.
+    $injury_logs = get_posts([
+        'post_type'   => 'injury_log',
+        'numberposts' => -1, // Show all current injuries
+        'post_status' => 'publish',
+        'meta_query'  => [
+            'relation' => 'AND',
+            [
+                'key'     => 'recovery_status',
+                'value'   => 'resolved',
+                'compare' => '!=', // Exclude injuries that are fully resolved
+            ],
+            $skater_meta_query, // Filter by visible skaters
+        ],
+        'meta_key'    => 'date_of_onset',
+        'orderby'     => 'meta_value',
+        'order'       => 'DESC',
+    ]);
+
+    // Color mapping for the status dots.
+    $status_colors = [
+        'Cleared'     => '#3c763d', // green
+        'Limited'     => '#e67e22', // orange
+        'Modified'    => '#3498db', // blue
+        'Resting'     => '#c0392b', // red
+        'Rehab'  => '#9b59b6', // purple
+        'Resolved'    => '#777777', // grey for resolved (though it won't be shown)
+        'default'     => '#999',    // default grey
     ];
-}, $visible_ids);
 
-// Fetch injury logs for visible skaters
-$logs = get_posts([
-    'post_type'   => 'injury_log',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-    'meta_query'  => [
-        'relation' => 'OR',
-        ...$meta_clauses,
-    ],
-    'meta_key'    => 'date_of_onset',
-    'orderby'     => 'meta_value',
-    'order'       => 'DESC',
-]);
+    foreach ($injury_logs as $log) {
+        $log_id = $log->ID;
 
-if (empty($logs)) {
-    echo '<p>No injuries or health concerns logged for assigned skaters.</p>';
-    return;
+        $skater_post = get_field('injured_skater', $log_id);
+        $skater_name = is_array($skater_post) ? get_the_title($skater_post[0]) : ($skater_post ? get_the_title($skater_post) : '—');
+
+        $onset_raw = get_field('date_of_onset', $log_id);
+        $onset_obj = $onset_raw ? DateTime::createFromFormat('d/m/Y', $onset_raw) : null;
+        $onset_display = $onset_obj ? $onset_obj->format('M j, Y') : '—';
+
+        $status = get_field('recovery_status', $log_id);
+        $status_value = is_array($status) ? ($status['value'] ?? '') : sanitize_title($status);
+        $status_label = is_array($status) ? ($status['label'] ?? '—') : ($status ?: '—');
+        
+        $severity = get_field('severity', $log_id);
+        $severity_display = is_array($severity) ? ($severity['label'] ?? '—') : ($severity ?: '—');
+        
+        $body_area = get_field('body_area', $log_id);
+        $body_area_display = is_array($body_area) ? implode(', ', $body_area) : ($body_area ?: '—');
+
+        $logs_data[] = [
+            'skater_name' => $skater_name,
+            'onset_date' => $onset_display,
+            'severity' => $severity_display,
+            'body_area' => $body_area_display,
+            'status_label' => $status_label,
+            'dot_color' => $status_colors[$status_value] ?? $status_colors['default'],
+            'view_url' => get_permalink($log_id),
+            'edit_url' => site_url('/edit-injury-log/' . $log_id),
+        ];
+    }
 }
 
-echo '<table class="widefat fixed striped">';
-echo '<thead><tr>
-    <th>Status</th>
-    <th>Skater</th>
-    <th>Date of Onset</th>
-    <th>Severity</th>
-    <th>Body Area</th>
-    <th>Actions</th>
-</tr></thead><tbody>';
+// --- 2. RENDER VIEW ---
+?>
 
-foreach ($logs as $log) {
-    $log_id = $log->ID;
+<h2>Current Injury & Health Log</h2>
 
-    // Skater
-    $skater = get_field('injured_skater', $log_id);
-    $skater_name = is_array($skater) ? get_the_title($skater[0]) : ($skater ? get_the_title($skater) : '—');
+<p>
+    <a class="button button-primary" href="<?php echo esc_url(site_url('/create-injury-log/')); ?>">Add Injury Log</a>
+</p>
 
-    // Dates
-    $onset_raw = get_field('date_of_onset', $log_id);
-    $onset = DateTime::createFromFormat('d/m/Y', $onset_raw);
-    $onset_display = $onset ? date_i18n('M j, Y', $onset->getTimestamp()) : '—';
+<?php if (empty($logs_data)) : ?>
 
-    // Severity
-    $severity = get_field('severity', $log_id);
-    $severity_display = is_array($severity) ? ($severity['label'] ?? '—') : ($severity ?: '—');
+    <p>No current (non-resolved) injuries or health concerns have been logged for assigned skaters.</p>
 
-    // Body Area
-    $body_area = get_field('body_area', $log_id);
-    $body_area_display = is_array($body_area) ? implode(', ', $body_area) : ($body_area ?: '—');
+<?php else : ?>
 
-    // Recovery Status
-    $status = get_field('recovery_status', $log_id);
-    $status_value = strtolower(is_array($status) ? ($status['value'] ?? '') : sanitize_title($status));
-    $status_label = is_array($status) ? ($status['label'] ?? '—') : ($status ?: '—');
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Skater</th>
+                <th>Date of Onset</th>
+                <th>Severity</th>
+                <th>Body Area</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($logs_data as $log) : ?>
+                <tr>
+                    <td>
+                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:<?php echo esc_attr($log['dot_color']); ?>; margin-right:8px;"></span>
+                        <?php echo esc_html($log['status_label']); ?>
+                    </td>
+                    <td><?php echo esc_html($log['skater_name']); ?></td>
+                    <td><?php echo esc_html($log['onset_date']); ?></td>
+                    <td><?php echo esc_html($log['severity']); ?></td>
+                    <td><?php echo esc_html($log['body_area']); ?></td>
+                    <td>
+                        <a href="<?php echo esc_url($log['view_url']); ?>">View</a> | 
+                        <a href="<?php echo esc_url($log['edit_url']); ?>">Update</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
 
-    $colors = [
-        'cleared'     => '#3c763d',
-        'limited'     => '#e67e22',
-        'modified'    => '#3498db',
-        'resting'     => '#c0392b',
-        'rehab_only'  => '#9b59b6',
-    ];
-    $dot_color = $colors[$status_value] ?? '#999';
-
-    // Actions
-    $view_link = get_permalink($log_id);
-    $edit_link = site_url('/edit-injury-log/' . $log_id);
-
-    echo '<tr>';
-    echo '<td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:' . esc_attr($dot_color) . ';margin-right:6px;"></span>' . esc_html($status_label) . '</td>';
-    echo '<td>' . esc_html($skater_name) . '</td>';
-    echo '<td>' . esc_html($onset_display) . '</td>';
-    echo '<td>' . esc_html($severity_display) . '</td>';
-    echo '<td>' . esc_html($body_area_display) . '</td>';
-    echo '<td><a href="' . esc_url($view_link) . '">View</a> | <a href="' . esc_url($edit_link) . '">Update</a></td>';
-    echo '</tr>';
-}
-
-echo '</tbody></table>';
+<?php endif; ?>

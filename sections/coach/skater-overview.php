@@ -1,81 +1,118 @@
 <?php
-// --- Coach Dashboard: Skater Overview ---
+/**
+ * Coach Dashboard Section: Skater Overview
+ * * This template has been refactored for code style, UI consistency, and readability.
+ * * Flag is now next to skater's name. Tooltip has been removed for simplicity.
+ */
 
-echo '<h2>Skater Overview</h2>';
-echo '<p><a class="button button-primary" href="' . esc_url(site_url('/create-skater')) . '">Add New Skater</a></p>';
-
+// --- 1. PREPARE DATA ---
 $skaters = spd_get_visible_skaters();
+$today_ymd = date('Ymd');
+$skaters_data = [];
 
-if (empty($skaters)) {
-    echo '<p>No skaters found.</p>';
-    return;
-}
+if (!empty($skaters)) {
+    foreach ($skaters as $skater) {
+        // Basic skater info
+        $skater_id   = $skater->ID;
+        $skater_slug = $skater->post_name;
+        
+        // Get the 3-letter code for the flag function by telling ACF not to format the value.
+        $federation_code = get_field('federation', $skater_id, false);
 
-echo '<table class="widefat fixed striped">';
-echo '<thead>
-    <tr>
-        <th>Skater</th>
-        <th>Age</th>
-        <th>Level</th>
-        <th>Federation</th>
-        <th>Current Yearly Plan</th>
-    </tr>
-</thead><tbody>';
+        // Find the current yearly plan for this skater
+        $current_plan_post = null;
+        $plans = get_posts([
+            'post_type'   => 'yearly_plan',
+            'numberposts' => -1,
+            'post_status' => 'publish',
+            'meta_query'  => [[
+                'key'     => 'skater',
+                'value'   => '"' . $skater_id . '"',
+                'compare' => 'LIKE',
+            ]],
+        ]);
 
-$today = date('Y-m-d');
+        foreach ($plans as $plan) {
+            $season_dates = get_field('season_dates', $plan->ID);
+            if (is_array($season_dates) && !empty($season_dates['start_date']) && !empty($season_dates['end_date'])) {
+                $start_date_ymd = DateTime::createFromFormat('d/m/Y', $season_dates['start_date'])->format('Ymd');
+                $end_date_ymd   = DateTime::createFromFormat('d/m/Y', $season_dates['end_date'])->format('Ymd');
 
-foreach ($skaters as $skater) {
-    $skater_id   = $skater->ID;
-    $skater_name = get_the_title($skater_id);
-    $skater_slug = $skater->post_name;
-    $age = get_field('age', $skater_id) ?: '—';
-    $level       = get_field('current_level', $skater_id) ?: '—';
-    $federation  = get_field('federation', $skater_id) ?: '—';
-
-    $skater_view_url = site_url('/skater/' . $skater_slug);
-    $edit_url = site_url('/edit-skater/' . $skater_id);
-
-    // Find current plan (within season date range)
-    $plans = get_posts([
-        'post_type'   => 'yearly_plan',
-        'numberposts' => -1,
-        'post_status' => 'publish',
-        'meta_query'  => [[
-            'key'     => 'skater',
-            'value'   => '"' . $skater_id . '"',
-            'compare' => 'LIKE',
-        ]],
-        'orderby'   => 'meta_value',
-        'meta_key'  => 'season_dates_start_date',
-        'order'     => 'DESC',
-    ]);
-
-    $current_plan = null;
-    foreach ($plans as $plan) {
-        $season = get_field('season_dates', $plan->ID);
-        if (is_array($season) && isset($season['start_date'], $season['end_date'])) {
-            if ($today >= $season['start_date'] && $today <= $season['end_date']) {
-                $current_plan = $plan;
-                break;
+                if ($today_ymd >= $start_date_ymd && $today_ymd <= $end_date_ymd) {
+                    $current_plan_post = $plan;
+                    break;
+                }
             }
         }
+        
+        // Prepare data array for the view
+        $skaters_data[] = [
+            'name' => get_the_title($skater_id),
+            'age' => get_field('age', $skater_id) ?: '—',
+            'level' => get_field('current_level', $skater_id) ?: '—',
+            'flag_emoji' => function_exists('spd_get_country_flag_emoji') ? spd_get_country_flag_emoji($federation_code) : '',
+            'view_url' => site_url('/skater/' . $skater_slug),
+            'edit_url' => site_url('/edit-skater/' . $skater_id),
+            'current_plan' => $current_plan_post ? [
+                'title' => get_the_title($current_plan_post->ID),
+                'url' => get_permalink($current_plan_post->ID),
+            ] : null,
+        ];
     }
-
-    $plan_link = $current_plan
-      ? '<a href="' . esc_url(site_url('/edit-yearly-plan/' . $current_plan->ID)) . '">' . esc_html(get_the_title($current_plan->ID)) . '</a>'
-      : '—';
-
-
-    echo '<tr>';
-    echo '<td>';
-    echo '<a href="' . esc_url($skater_view_url) . '">' . esc_html($skater_name) . '</a>';
-    echo ' <a class="button small" style="margin-left: 6px;" href="' . esc_url($edit_url) . '">Edit</a>';
-    echo '</td>';
-    echo '<td>' . esc_html($age) . '</td>';
-    echo '<td>' . esc_html($level) . '</td>';
-    echo '<td>' . esc_html($federation) . '</td>';
-    echo '<td>' . $plan_link . '</td>';
-    echo '</tr>';
 }
 
-echo '</tbody></table>';
+// --- 2. RENDER VIEW ---
+?>
+
+<h2>Skater Overview</h2>
+
+<p>
+    <a class="button button-primary" href="<?php echo esc_url(site_url('/create-skater')); ?>">Add New Skater</a>
+</p>
+
+<?php if (empty($skaters_data)) : ?>
+
+    <p>No skaters found.</p>
+
+<?php else : ?>
+
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th>Skater</th>
+                <th>Age</th>
+                <th>Level</th>
+                <th>Current Yearly Plan</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($skaters_data as $skater) : ?>
+                <tr>
+                    <td>
+                        <span style="margin-right: 0.75em; font-size: 1.5em; vertical-align: middle;"><?php echo $skater['flag_emoji']; ?></span>
+                        <a href="<?php echo esc_url($skater['view_url']); ?>">
+                            <?php echo esc_html($skater['name']); ?>
+                        </a>
+                    </td>
+                    <td><?php echo esc_html($skater['age']); ?></td>
+                    <td><?php echo esc_html($skater['level']); ?></td>
+                    <td>
+                        <?php if ($skater['current_plan']) : ?>
+                            <a href="<?php echo esc_url($skater['current_plan']['url']); ?>">
+                                <?php echo esc_html($skater['current_plan']['title']); ?>
+                            </a>
+                        <?php else : ?>
+                            —
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <a href="<?php echo esc_url($skater['view_url']); ?>">View</a> | 
+                        <a href="<?php echo esc_url($skater['edit_url']); ?>">Edit</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+
+<?php endif; ?>

@@ -257,3 +257,25 @@ function spd_set_injury_log_title_on_create($post_id) {
 
     return $post_id;
 }
+
+/**
+ * Returns a country flag emoji based on a 3-letter federation code.
+ *
+ * @param string $federation_code The 3-letter country code (e.g., 'CAN', 'PHI', 'USA').
+ * @return string The corresponding flag emoji or an empty string if not found.
+ */
+function spd_get_country_flag_emoji($federation_code) {
+    // A mapping of federations to their flag emojis.
+    // This list can be expanded as needed.
+    $flags = [
+        'CAN' => '🇨🇦', // Canada
+        'PHI' => '🇵🇭', // Philippines
+        'USA' => '🇺🇸', // United States
+    ];
+
+    // Ensure the code is uppercase for a case-insensitive match.
+    $code = strtoupper($federation_code);
+
+    // Return the flag if it exists in our array, otherwise return an empty string.
+    return $flags[$code] ?? ''; 
+}
