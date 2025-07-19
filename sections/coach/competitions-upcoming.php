@@ -1,97 +1,126 @@
 <?php
-// --- Coach Dashboard: Upcoming Competitions ---
+/**
+ * Coach Dashboard Section: Upcoming Competitions
+ * This template has been refactored to include a countdown and improved actions.
+ */
 
-echo '<h2>Upcoming Competitions</h2>';
+// --- 1. PREPARE DATA ---
+$visible_skater_ids = wp_list_pluck(spd_get_visible_skaters(), 'ID');
+$competitions_data = [];
 
-$today        = date('Y-m-d');
-$visible      = spd_get_visible_skaters();
-$visible_ids  = wp_list_pluck($visible, 'ID');
+if (!empty($visible_skater_ids)) {
+    // Build the meta query to find results for any of the visible skaters.
+    $skater_meta_query = ['relation' => 'OR'];
+    foreach ($visible_skater_ids as $skater_id) {
+        $skater_meta_query[] = [
+            'key'     => 'skater',
+            'value'   => '"' . $skater_id . '"',
+            'compare' => 'LIKE',
+        ];
+    }
 
-// Build meta query for competition_result posts
-$meta_clauses = array_map(function($id) {
-    return [
-        'key'     => 'skater',
-        'value'   => '"' . $id . '"', // match serialized array
-        'compare' => 'LIKE',
-    ];
-}, $visible_ids);
+    // Get all competition results for the visible skaters.
+    $results = get_posts([
+        'post_type'   => 'competition_result',
+        'numberposts' => -1,
+        'post_status' => 'publish',
+        'meta_query'  => $skater_meta_query,
+    ]);
 
-$results = get_posts([
-    'post_type'   => 'competition_result',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-    'meta_query'  => [
-        'relation' => 'OR',
-        ...$meta_clauses,
-    ],
-]);
+    $today_ymd = date('Y-m-d');
+    $grouped_competitions = [];
 
-if (empty($results)) {
-    echo '<p>No upcoming competitions found for assigned skaters.</p>';
-    return;
+    // Group results by their linked competition.
+    foreach ($results as $result) {
+        $competition_post_array = get_field('linked_competition', $result->ID);
+        if (empty($competition_post_array[0])) continue;
+        
+        $competition = $competition_post_array[0];
+        $comp_date = get_field('competition_date', $competition->ID);
+
+        // Only include competitions that are in the future.
+        if ($comp_date && $comp_date >= $today_ymd) {
+            if (!isset($grouped_competitions[$competition->ID])) {
+                $grouped_competitions[$competition->ID] = [
+                    'competition' => $competition,
+                    'results' => [],
+                ];
+            }
+            $grouped_competitions[$competition->ID]['results'][] = $result;
+        }
+    }
+
+    // Sort the grouped competitions by date.
+    uasort($grouped_competitions, function ($a, $b) {
+        $dateA = get_field('competition_date', $a['competition']->ID);
+        $dateB = get_field('competition_date', $b['competition']->ID);
+        return strtotime($dateA) <=> strtotime($dateB);
+    });
+
+    // Prepare the final data array for the view.
+    foreach ($grouped_competitions as $group) {
+        $competition = $group['competition'];
+        $comp_date_raw = get_field('competition_date', $competition->ID);
+        $date_obj = $comp_date_raw ? DateTime::createFromFormat('Y-m-d', $comp_date_raw) : null;
+
+        $skater_names = array_map(function ($result) {
+            $skater_post_array = get_field('skater', $result->ID);
+            return !empty($skater_post_array[0]) ? get_the_title($skater_post_array[0]) : '—';
+        }, $group['results']);
+
+        $competitions_data[] = [
+            'name' => get_the_title($competition),
+            'date' => $date_obj ? $date_obj->format('M j, Y') : '—',
+            'countdown' => function_exists('spd_get_countdown_string') ? spd_get_countdown_string($comp_date_raw) : '',
+            'location' => get_field('competition_location', $competition->ID) ?: '—',
+            'skaters' => implode(', ', $skater_names),
+            'view_url' => get_permalink($competition->ID),
+        ];
+    }
 }
 
-// Group future competitions
-$grouped = [];
+// --- 2. RENDER VIEW ---
+?>
 
-foreach ($results as $result) {
-    $comp = get_field('linked_competition', $result->ID);
-    $comp = is_array($comp) ? ($comp[0] ?? null) : $comp;
-    if (!$comp || !is_object($comp)) continue;
+<div class="section-header">
+    <h2 class="section-title">Upcoming Competitions</h2>
+    <div class="actions">
+        <a href="<?php echo esc_url(site_url('/view-all-competitions/')); ?>">Manage All Competitions</a>
+        <a class="button button-primary" href="<?php echo esc_url(site_url('/create-competition-result/')); ?>">Add Skater Entry</a>
+    </div>
+</div>
 
-    $comp_date = get_field('competition_date', $comp->ID);
-    if (!$comp_date || $comp_date <= $today) continue;
+<?php if (empty($competitions_data)) : ?>
 
-    $grouped[$comp->ID]['competition'] = $comp;
-    $grouped[$comp->ID]['results'][]   = $result;
-}
+    <p>No upcoming competitions found for assigned skaters.</p>
 
-if (empty($grouped)) {
-    echo '<p>No upcoming competitions found for assigned skaters.</p>';
-    return;
-}
+<?php else : ?>
 
-// Sort competitions by date
-uasort($grouped, function ($a, $b) {
-    $dateA = get_field('competition_date', $a['competition']->ID);
-    $dateB = get_field('competition_date', $b['competition']->ID);
-    return strtotime($dateA) - strtotime($dateB);
-});
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th>Competition</th>
+                <th>Date</th>
+                <th>Countdown</th>
+                <th>Location</th>
+                <th>Skater(s)</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($competitions_data as $comp) : ?>
+                <tr>
+                    <td><?php echo esc_html($comp['name']); ?></td>
+                    <td><?php echo esc_html($comp['date']); ?></td>
+                    <td><span style="font-style: italic; color: var(--text-muted);"><?php echo esc_html($comp['countdown']); ?></span></td>
+                    <td><?php echo esc_html($comp['location']); ?></td>
+                    <td><?php echo esc_html($comp['skaters']); ?></td>
+                    <td>
+                        <a href="<?php echo esc_url($comp['view_url']); ?>">View</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
 
-// Display table
-echo '<table class="widefat fixed striped">';
-echo '<thead>
-<tr>
-    <th>Competition</th>
-    <th>Date</th>
-    <th>Location</th>
-    <th>Skater(s)</th>
-    <th>Actions</th>
-</tr>
-</thead><tbody>';
-
-foreach ($grouped as $entry) {
-    $comp         = $entry['competition'];
-    $results      = $entry['results'];
-    $comp_id      = $comp->ID;
-    $comp_name    = get_the_title($comp_id);
-    $comp_date    = get_field('competition_date', $comp_id);
-    $comp_date_fmt = function_exists('coach_format_date') ? coach_format_date($comp_date) : $comp_date;
-    $location     = get_field('competition_location', $comp_id);
-
-    $skater_names = array_map(function ($res) {
-        $skater = get_field('linked_skater', $res->ID);
-        $skater = is_array($skater) ? ($skater[0] ?? null) : $skater;
-        return $skater ? get_the_title($skater->ID) : '—';
-    }, $results);
-
-    echo '<tr>';
-    echo '<td><a href="' . esc_url(get_permalink($comp_id)) . '">' . esc_html($comp_name) . '</a></td>';
-    echo '<td>' . esc_html($comp_date_fmt) . '</td>';
-    echo '<td>' . esc_html($location ?: '—') . '</td>';
-    echo '<td>' . esc_html(implode(', ', $skater_names)) . '</td>';
-    echo '<td><a href="' . esc_url(get_permalink($comp_id)) . '" class="button">View</a></td>';
-    echo '</tr>';
-}
-
-echo '</tbody></table>';
+<?php endif; ?>

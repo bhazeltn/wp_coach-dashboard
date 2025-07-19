@@ -2,7 +2,7 @@
 /**
  * Coach Dashboard Section: Skater Overview
  * * This template has been refactored for code style, UI consistency, and readability.
- * * Flag is now next to skater's name. Tooltip has been removed for simplicity.
+ * * Flag is now next to skater's name with a tooltip for the full federation name.
  */
 
 // --- 1. PREPARE DATA ---
@@ -18,6 +18,8 @@ if (!empty($skaters)) {
         
         // Get the 3-letter code for the flag function by telling ACF not to format the value.
         $federation_code = get_field('federation', $skater_id, false);
+        // Get the full name label for the tooltip by letting ACF format the value (its default behavior).
+        $federation_name = get_field('federation', $skater_id);
 
         // Find the current yearly plan for this skater
         $current_plan_post = null;
@@ -50,6 +52,7 @@ if (!empty($skaters)) {
             'name' => get_the_title($skater_id),
             'age' => get_field('age', $skater_id) ?: '—',
             'level' => get_field('current_level', $skater_id) ?: '—',
+            'federation_name' => is_string($federation_name) ? $federation_name : '',
             'flag_emoji' => function_exists('spd_get_country_flag_emoji') ? spd_get_country_flag_emoji($federation_code) : '',
             'view_url' => site_url('/skater/' . $skater_slug),
             'edit_url' => site_url('/edit-skater/' . $skater_id),
@@ -64,11 +67,10 @@ if (!empty($skaters)) {
 // --- 2. RENDER VIEW ---
 ?>
 
-<h2>Skater Overview</h2>
-
-<p>
+<div class="section-header">
+    <h2 class="section-title">Skater Overview</h2>
     <a class="button button-primary" href="<?php echo esc_url(site_url('/create-skater')); ?>">Add New Skater</a>
-</p>
+</div>
 
 <?php if (empty($skaters_data)) : ?>
 
@@ -90,7 +92,7 @@ if (!empty($skaters)) {
             <?php foreach ($skaters_data as $skater) : ?>
                 <tr>
                     <td>
-                        <span style="margin-right: 0.75em; font-size: 1.5em; vertical-align: middle;"><?php echo $skater['flag_emoji']; ?></span>
+                        <span title="<?php echo esc_attr($skater['federation_name']); ?>" style="margin-right: 0.75em; font-size: 1.5em; vertical-align: middle; cursor: help;"><?php echo $skater['flag_emoji']; ?></span>
                         <a href="<?php echo esc_url($skater['view_url']); ?>">
                             <?php echo esc_html($skater['name']); ?>
                         </a>

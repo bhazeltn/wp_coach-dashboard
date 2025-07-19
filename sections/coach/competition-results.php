@@ -1,114 +1,142 @@
 <?php
-// --- Coach Dashboard: Competition Results Summary ---
+/**
+ * Coach Dashboard Section: Competition Results Summary
+ * This template has been refactored for code style, UI consistency, and performance.
+ */
 
-echo '<h2>Competition Results</h2>';
+// --- 1. PREPARE DATA ---
+$visible_skater_ids = wp_list_pluck(spd_get_visible_skaters(), 'ID');
+$competitions_data = [];
 
-$today = date('Y-m-d');
-$visible_ids = wp_list_pluck(spd_get_visible_skaters(), 'ID');
-
-// Fetch all competition results visible to the current coach
-$results = get_posts([
-    'post_type'   => 'competition_result',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-    'meta_query'  => spd_meta_query_for_visible_skaters('linked_skater', $visible_ids),
-]);
-
-if (empty($results)) {
-    echo '<p>No competition results found.</p>';
-    return;
-}
-
-// Group results by competition
-$grouped = [];
-
-foreach ($results as $result) {
-    $comp = get_field('linked_competition', $result->ID);
-    $comp = is_array($comp) ? ($comp[0] ?? null) : $comp;
-    if (!$comp || !is_object($comp)) continue;
-
-    $comp_date = get_field('competition_date', $comp->ID);
-    if (!$comp_date || $comp_date > $today) continue;
-
-    $grouped[$comp->ID]['competition'] = $comp;
-    $grouped[$comp->ID]['results'][] = $result;
-}
-
-// Sort competitions by date
-uasort($grouped, function ($a, $b) {
-    $dateA = get_field('competition_date', $a['competition']->ID);
-    $dateB = get_field('competition_date', $b['competition']->ID);
-    return strtotime($dateA) - strtotime($dateB);
-});
-
-// Display each competition and its results
-foreach ($grouped as $comp_data) {
-    $comp = $comp_data['competition'];
-    $comp_id = $comp->ID;
-    $comp_name = get_the_title($comp_id);
-    $comp_date = get_field('competition_date', $comp_id);
-    $comp_date_fmt = function_exists('coach_format_date') ? coach_format_date($comp_date) : $comp_date;
-
-    echo '<h3>' . esc_html($comp_name) . ' – ' . esc_html($comp_date_fmt) . '</h3>';
-
-    echo '<table class="widefat fixed striped">';
-    echo '<thead><tr>
-            <th>Skater</th>
-            <th>Level</th>
-            <th>Discipline</th>
-            <th>Placement</th>
-            <th>Total Score</th>
-            <th>Actions</th>
-        </tr></thead><tbody>';
-
-    foreach ($comp_data['results'] as $result) {
-        $skater = get_field('linked_skater', $result->ID);
-        $skater = is_array($skater) ? ($skater[0] ?? null) : $skater;
-
-        $level      = get_field('level', $result->ID) ?: '—';
-        $discipline = get_field('discipline', $result->ID) ?: '—';
-
-        // Placement and score
-        $placement_display = '—';
-        $medal = '';
-        $total = null;
-
-        $comp_score = get_field('comp_score', $result->ID);
-        if (is_array($comp_score)) {
-            $placement = $comp_score['placement'] ?? null;
-            if ($placement) {
-                $placement_display = $placement;
-                $medal = match ((int)$placement) {
-                    1 => ' 🥇',
-                    2 => ' 🥈',
-                    3 => ' 🥉',
-                    default => '',
-                };
-            }
-
-            $total = $comp_score['total_competition_score'] ?? null;
-        }
-
-        // Fallback to segment total if needed
-        if (!$total) {
-            $sp_score = get_field('sp_score_place', $result->ID);
-            $fs_score = get_field('fs_score', $result->ID);
-            if (!empty($sp_score['short_program_score'])) {
-                $total = $sp_score['short_program_score'];
-            } elseif (!empty($fs_score['free_program_score'])) {
-                $total = $fs_score['free_program_score'];
-            }
-        }
-
-        echo '<tr>';
-        echo '<td>' . esc_html($skater ? get_the_title($skater->ID) : '—') . '</td>';
-        echo '<td>' . esc_html($level) . '</td>';
-        echo '<td>' . esc_html($discipline) . '</td>';
-        echo '<td>' . esc_html($placement_display . $medal) . '</td>';
-        echo '<td>' . esc_html(is_numeric($total) ? number_format($total, 2) : '—') . '</td>';
-        echo '<td><a href="' . esc_url(get_permalink($result->ID)) . '">View</a> | <a href="' . esc_url(site_url('/edit-competition-result/' . $result->ID . '/')) . '">Update</a></td>';
-        echo '</tr>';
+if (!empty($visible_skater_ids)) {
+    // Build the meta query to find results for any of the visible skaters.
+    $skater_meta_query = ['relation' => 'OR'];
+    foreach ($visible_skater_ids as $skater_id) {
+        $skater_meta_query[] = [
+            'key'     => 'skater',
+            'value'   => '"' . $skater_id . '"',
+            'compare' => 'LIKE',
+        ];
     }
 
-    echo '</tbody></table>';
+    // Get all competition results for the visible skaters.
+    $all_results = get_posts([
+        'post_type'   => 'competition_result',
+        'numberposts' => -1,
+        'post_status' => 'publish',
+        'meta_query'  => $skater_meta_query,
+    ]);
+
+    $today_ymd = date('Y-m-d');
+    $grouped_competitions = [];
+
+    // Group results by their linked competition.
+    foreach ($all_results as $result) {
+        $competition_post_array = get_field('linked_competition', $result->ID);
+        if (empty($competition_post_array[0])) continue;
+
+        $competition = $competition_post_array[0];
+        $comp_date = get_field('competition_date', $competition->ID);
+
+        // Only include competitions that are in the past.
+        if ($comp_date && $comp_date < $today_ymd) {
+            if (!isset($grouped_competitions[$competition->ID])) {
+                $comp_date_obj = $comp_date ? DateTime::createFromFormat('Y-m-d', $comp_date) : null;
+                $grouped_competitions[$competition->ID] = [
+                    'name' => get_the_title($competition),
+                    'date' => $comp_date_obj ? $comp_date_obj->format('M j, Y') : '—',
+                    'date_raw' => $comp_date,
+                    'results' => [],
+                ];
+            }
+            $grouped_competitions[$competition->ID]['results'][] = $result;
+        }
+    }
+
+    // Sort the competitions by date, most recent first.
+    uasort($grouped_competitions, function ($a, $b) {
+        return strtotime($b['date_raw']) <=> strtotime($a['date_raw']);
+    });
+
+    // Prepare the final data array for the view.
+    foreach ($grouped_competitions as $comp_id => $comp_data) {
+        $results_for_view = [];
+        foreach ($comp_data['results'] as $result) {
+            $skater_post_array = get_field('skater', $result->ID);
+            $skater_name = !empty($skater_post_array[0]) ? get_the_title($skater_post_array[0]) : '—';
+            
+            $comp_score = get_field('comp_score', $result->ID);
+            $placement = $comp_score['placement'] ?? null;
+            $total_score = $comp_score['total_competition_score'] ?? '—';
+            
+            $medal = '';
+            if ($placement) {
+                if ($placement == 1) $medal = ' 🥇';
+                if ($placement == 2) $medal = ' 🥈';
+                if ($placement == 3) $medal = ' 🥉';
+            }
+
+            $results_for_view[] = [
+                'skater_name' => $skater_name,
+                'level' => get_field('level', $result->ID) ?: '—',
+                'discipline' => get_field('discipline', $result->ID) ?: '—',
+                'placement' => ($placement ?: '—') . $medal,
+                'total_score' => is_numeric($total_score) ? number_format($total_score, 2) : '—',
+                'view_url' => get_permalink($result->ID),
+                'edit_url' => site_url('/edit-competition-result/' . $result->ID),
+            ];
+        }
+        $competitions_data[$comp_id] = $comp_data;
+        $competitions_data[$comp_id]['results'] = $results_for_view;
+    }
 }
+
+// --- 2. RENDER VIEW ---
+?>
+
+<div class="section-header">
+    <h2 class="section-title">Competition Results Summary</h2>
+    <div class="actions">
+        <a href="<?php echo esc_url(site_url('/view-all-competitions/')); ?>">Manage All Competitions</a>
+        <a class="button button-primary" href="<?php echo esc_url(site_url('/create-competition-result/')); ?>">Add Past Result</a>
+    </div>
+</div>
+
+<?php if (empty($competitions_data)) : ?>
+
+    <p>No past competition results found for assigned skaters.</p>
+
+<?php else : ?>
+
+    <?php foreach ($competitions_data as $comp) : ?>
+        <h3 style="margin-top: 2.5rem;"><?php echo esc_html($comp['name']); ?> <span style="font-weight: 400; color: var(--text-muted); font-size: 0.9em;">(<?php echo esc_html($comp['date']); ?>)</span></h3>
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th>Skater</th>
+                    <th>Level</th>
+                    <th>Discipline</th>
+                    <th>Placement</th>
+                    <th>Total Score</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($comp['results'] as $result) : ?>
+                    <tr>
+                        <td><?php echo esc_html($result['skater_name']); ?></td>
+                        <td><?php echo esc_html($result['level']); ?></td>
+                        <td><?php echo esc_html($result['discipline']); ?></td>
+                        <td><?php echo esc_html($result['placement']); ?></td>
+                        <td><?php echo esc_html($result['total_score']); ?></td>
+                        <td>
+                            <a href="<?php echo esc_url($result['view_url']); ?>">View</a> | 
+                            <a href="<?php echo esc_url($result['edit_url']); ?>">Update</a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endforeach; ?>
+
+<?php endif; ?>

@@ -1,6 +1,6 @@
 /* ===================================================================
    CoachOS Stylesheet
-   Version: 1.0
+   Version: 1.4
    
    TABLE OF CONTENTS
    1. GLOBAL STYLES & VARIABLES
@@ -87,6 +87,25 @@ body {
   padding-right: 2rem;
 }
 
+/* Header for dashboard sections */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+  margin-top: 2.5rem;
+}
+
+/* NEW: Container for multiple actions in a section header */
+.section-header .actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  /* Space between the link and the button */
+}
+
 /* ===================================================================
    3. TYPOGRAPHY
 =================================================================== */
@@ -105,6 +124,7 @@ h1 {
   margin: 0 0 1rem 0;
 }
 
+/* Default h2 style for contexts WITHOUT the new header */
 h2 {
   font-size: 1.5rem;
   margin: 2.5rem 0 1.5rem 0;
@@ -119,6 +139,14 @@ h3 {
 
 h4 {
   font-size: 1.1rem;
+}
+
+/* Dedicated style for titles inside a .section-header */
+.section-title {
+  font-size: 1.5rem;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
 p {
@@ -163,9 +191,10 @@ a:hover {
   display: inline-block;
   background-color: var(--primary-color);
   color: white !important;
-  padding: 10px 20px;
+  padding: 8px 18px;
   border-radius: 6px;
   font-weight: 600;
+  font-size: 0.9rem;
   border: none;
   cursor: pointer;
   text-decoration: none;

@@ -1,242 +1,179 @@
 <?php
-// --- Coach Dashboard: Goal Tracker ---
+/**
+ * Coach Dashboard Section: Goal Tracker
+ * This template has been refactored for code style, UI consistency, and performance.
+ */
 
-function coach_display_goal_table($goals, $columns, $row_renderer) {
-    echo '<table class="widefat fixed striped">';
-    echo '<thead><tr>';
-    foreach ($columns as $col) {
-        echo '<th>' . esc_html($col) . '</th>';
-    }
-    echo '</tr></thead><tbody>';
-    foreach ($goals as $goal) {
-        echo '<tr>';
-        call_user_func($row_renderer, $goal);
-        echo '</tr>';
-    }
-    echo '</tbody></table>';
-}
+// --- 1. PREPARE DATA ---
+$visible_skater_ids = wp_list_pluck(spd_get_visible_skaters(), 'ID');
+$long_term_goals_data = [];
+$weekly_goals_data = [];
+$missed_goals_data = [];
 
-function coach_get_goal_skater_name($goal_id) {
-    $skater_raw = get_field('skater', $goal_id);
-    $skater = is_array($skater_raw) ? ($skater_raw[0] ?? null) : $skater_raw;
-    return $skater ? get_the_title($skater) : '—';
-}
+if (!empty($visible_skater_ids)) {
+    $today_ymd = date('Y-m-d');
 
-function coach_format_date_safe($date) {
-    return function_exists('coach_format_date') ? coach_format_date($date) : $date;
-}
-
-// --- Determine visible skaters
-$visible      = spd_get_visible_skaters();
-$visible_ids  = wp_list_pluck($visible, 'ID');
-
-if (empty($visible_ids)) {
-    echo '<p>No skaters assigned to your account.</p>';
-    return;
-}
-
-// Meta query clause for filtering goals by skater
-$skater_clause = [
-    'relation' => 'OR',
-    ...array_map(function($id) {
-        return [
+    // Build the meta query to find goals for any of the visible skaters.
+    $skater_meta_query = ['relation' => 'OR'];
+    foreach ($visible_skater_ids as $skater_id) {
+        $skater_meta_query[] = [
             'key'     => 'skater',
-            'value'   => '"' . $id . '"',
-            'compare' => 'LIKE'
+            'value'   => '"' . $skater_id . '"',
+            'compare' => 'LIKE',
         ];
-    }, $visible_ids)
-];
+    }
 
-//
-// --- Mid/Long-Term Goals
-//
-echo '<h2>Mid/Long-Term Goals</h2>';
-
-$long_goals = get_posts([
-    'post_type'   => 'goal',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-    'meta_query'  => [
-        'relation' => 'AND',
-        $skater_clause,
-        [
-            'key'     => 'goal_timeframe',
-            'value'   => ['long', 'medium', 'season'],
-            'compare' => 'IN'
+    // --- Query 1: Mid/Long-Term Goals (In Progress) ---
+    $long_term_goals = get_posts([
+        'post_type'   => 'goal',
+        'numberposts' => -1,
+        'meta_query'  => [
+            'relation' => 'AND',
+            ['key' => 'goal_timeframe', 'value' => ['long', 'medium', 'season'], 'compare' => 'IN'],
+            ['key' => 'current_status', 'value' => ['Not Started', 'In Progress'], 'compare' => 'IN'],
+            $skater_meta_query,
         ],
-        [
-            'key'     => 'current_status',
-            'value'   => ['Not Started', 'In Progress'],
-            'compare' => 'IN'
-        ]
-    ],
-    'meta_key' => 'target_date',
-    'orderby'  => 'meta_value',
-    'order'    => 'ASC'
-]);
+        'meta_key' => 'target_date', 'orderby'  => 'meta_value', 'order'    => 'ASC'
+    ]);
+    $long_term_goals_data = $long_term_goals; // Assign directly for this simple case
 
-if (empty($long_goals)) {
-    echo '<p>No mid/long-term goals found.</p>';
-} else {
-    coach_display_goal_table($long_goals, ['Skater', 'Goal', 'Timeframe', 'Status', 'Target Date'], function ($goal) {
-        $title = get_the_title($goal->ID) ?: '[Untitled]';
-        $view_url = get_permalink($goal->ID);
-        $edit_url = site_url('/edit-goal?goal_id=' . $goal->ID);
-        $title_links = esc_html($title) . ' <span style="font-size: 0.9em;">(' .
-            '<a href="' . esc_url($view_url) . '">View</a> | ' .
-            '<a href="' . esc_url($edit_url) . '">Update</a>' .
-            ')</span>';
-
-        $timeframe = get_field('goal_timeframe', $goal->ID) ?: '—';
-        $status = get_field('current_status', $goal->ID) ?: '—';
-
-        $target = get_field('target_date', $goal->ID);
-        if ($target) {
-            $dt = DateTime::createFromFormat('d/m/Y', $target);
-            $target = $dt ? date_i18n('F j, Y', $dt->getTimestamp()) : $target;
-        } else {
-            $target = '—';
-        }
-
-        echo '<td>' . esc_html(coach_get_goal_skater_name($goal->ID)) . '</td>';
-        echo '<td>' . $title_links . '</td>';
-        echo '<td>' . esc_html($timeframe) . '</td>';
-        echo '<td>' . esc_html($status) . '</td>';
-        echo '<td>' . esc_html($target) . '</td>';
-    });
-}
-
-//
-// --- Weekly Goals
-//
-echo '<h2>Active Weekly Goals</h2>';
-
-$weekly_goals = get_posts([
-    'post_type'   => 'goal',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-    'meta_query'  => [
-        'relation' => 'AND',
-        $skater_clause,
-        [
-            'key'     => 'goal_timeframe',
-            'value'   => ['week', 'micro'],
-            'compare' => 'IN'
+    // --- Query 2: Active Weekly Goals ---
+    $weekly_goals = get_posts([
+        'post_type'   => 'goal',
+        'numberposts' => -1,
+        'meta_query'  => [
+            'relation' => 'AND',
+            ['key' => 'goal_timeframe', 'value' => ['week', 'micro'], 'compare' => 'IN'],
+            ['key' => 'target_date', 'value' => [$today_ymd, date('Y-m-d', strtotime('+14 days'))], 'compare' => 'BETWEEN', 'type' => 'DATE'],
+            $skater_meta_query,
         ],
-        [
-            'key'     => 'target_date',
-            'value'   => [
-                date('Y-m-d', strtotime('monday this week')),
-                date('Y-m-d', strtotime('sunday next week'))
-            ],
-            'compare' => 'BETWEEN',
-            'type'    => 'DATE'
-        ]
-    ],
-    'meta_key' => 'target_date',
-    'orderby'  => 'meta_value',
-    'order'    => 'ASC'
-]);
+        'meta_key' => 'target_date', 'orderby'  => 'meta_value', 'order'    => 'ASC'
+    ]);
+    $weekly_goals_data = $weekly_goals;
 
-if (empty($weekly_goals)) {
-    echo '<p>No active weekly goals found.</p>';
-} else {
-    coach_display_goal_table($weekly_goals, ['Skater', 'Goal', 'Status', 'Target Date'], function ($goal) {
-        $title = get_the_title($goal->ID) ?: '[Untitled]';
-        $view_url = get_permalink($goal->ID);
-        $edit_url = site_url('/edit-goal?goal_id=' . $goal->ID);
-        $title_links = esc_html($title) . ' <span style="font-size: 0.9em;">(' .
-            '<a href="' . esc_url($view_url) . '">View</a> | ' .
-            '<a href="' . esc_url($edit_url) . '">Update</a>' .
-            ')</span>';
-
-        $status = get_field('current_status', $goal->ID) ?: '—';
-
-        $target = get_field('target_date', $goal->ID);
-        if ($target) {
-            $dt = DateTime::createFromFormat('d/m/Y', $target);
-            $target = $dt ? date_i18n('F j, Y', $dt->getTimestamp()) : $target;
-        } else {
-            $target = '—';
-        }
-
-        echo '<td>' . esc_html(coach_get_goal_skater_name($goal->ID)) . '</td>';
-        echo '<td>' . $title_links . '</td>';
-        echo '<td>' . esc_html($status) . '</td>';
-        echo '<td>' . esc_html($target) . '</td>';
-    });
-}
-
-//
-// --- Missed or Stalled Goals
-//
-echo '<h2>Stalled or Missed Goals</h2>';
-
-$missed_goals = get_posts([
-    'post_type'   => 'goal',
-    'numberposts' => -1,
-    'post_status' => 'publish',
-    'meta_query'  => [
-        'relation' => 'AND',
-        $skater_clause,
-        [
-            'relation' => 'OR',
+    // --- Query 3: Missed or Stalled Goals ---
+    $missed_goals = get_posts([
+        'post_type'   => 'goal',
+        'numberposts' => -1,
+        'meta_query'  => [
+            'relation' => 'AND',
             [
-                'key'     => 'current_status',
-                'value'   => ['Abandoned', 'On Hold'],
-                'compare' => 'IN'
-            ],
-            [
-                'relation' => 'AND',
+                'relation' => 'OR',
+                ['key' => 'current_status', 'value' => ['Abandoned', 'On Hold'], 'compare' => 'IN'],
                 [
-                    'key'     => 'target_date',
-                    'value'   => date('Y-m-d'),
-                    'compare' => '<',
-                    'type'    => 'DATE'
-                ],
-                [
-                    'key'     => 'current_status',
-                    'value'   => 'Achieved',
-                    'compare' => '!=',
+                    'relation' => 'AND',
+                    ['key' => 'target_date', 'value' => $today_ymd, 'compare' => '<', 'type' => 'DATE'],
+                    ['key' => 'current_status', 'value' => 'Achieved', 'compare' => '!='],
                 ]
-            ]
-        ]
-    ],
-    'meta_key' => 'target_date',
-    'orderby'  => 'meta_value',
-    'order'    => 'ASC'
-]);
-
-if (empty($missed_goals)) {
-    echo '<p>No stalled or missed goals found.</p>';
-} else {
-    coach_display_goal_table($missed_goals, ['Skater', 'Goal', 'Status', 'Target Date'], function ($goal) {
-        $title = get_the_title($goal->ID) ?: '[Untitled]';
-        $view_url = get_permalink($goal->ID);
-        $edit_url = site_url('/edit-goal?goal_id=' . $goal->ID);
-        $title_links = esc_html($title) . ' <span style="font-size: 0.9em;">(' .
-            '<a href="' . esc_url($view_url) . '">View</a> | ' .
-            '<a href="' . esc_url($edit_url) . '">Update</a>' .
-            ')</span>';
-
-        $status = get_field('current_status', $goal->ID) ?: '—';
-
-        $target_raw = get_field('target_date', $goal->ID);
-        $target = '—';
-        $overdue = '';
-
-        if ($target_raw) {
-            $dt = DateTime::createFromFormat('d/m/Y', $target_raw);
-            if ($dt) {
-                $target = date_i18n('F j, Y', $dt->getTimestamp());
-                $interval = $dt->diff(new DateTime());
-                $overdue = ' (' . $interval->days . ' day' . ($interval->days !== 1 ? 's' : '') . ' overdue)';
-            }
-        }
-
-        echo '<td>' . esc_html(coach_get_goal_skater_name($goal->ID)) . '</td>';
-        echo '<td>' . $title_links . '</td>';
-        echo '<td>' . esc_html($status) . '</td>';
-        echo '<td>' . esc_html($target . $overdue) . '</td>';
-    });
+            ],
+            $skater_meta_query,
+        ],
+        'meta_key' => 'target_date', 'orderby'  => 'meta_value', 'order'    => 'ASC'
+    ]);
+    $missed_goals_data = $missed_goals;
 }
+
+/**
+ * Reusable function to render a single goal row in a table.
+ * This avoids repeating HTML and logic.
+ *
+ * @param WP_Post $goal The goal post object.
+ */
+function spd_render_goal_row($goal) {
+    // Prepare data for the row
+    $goal_id = $goal->ID;
+    $skater_post_array = get_field('skater', $goal_id);
+    $skater_name = !empty($skater_post_array[0]) ? get_the_title($skater_post_array[0]) : '—';
+    
+    $target_raw = get_field('target_date', $goal_id);
+    $date_obj = $target_raw ? DateTime::createFromFormat('d/m/Y', $target_raw) : null;
+    $target_date = $date_obj ? $date_obj->format('M j, Y') : '—';
+
+    $is_overdue = $date_obj && $date_obj < new DateTime('today') && get_field('current_status', $goal_id) !== 'Achieved';
+
+    ?>
+    <tr>
+        <td><?php echo esc_html($skater_name); ?></td>
+        <td><?php echo esc_html(get_the_title($goal_id)); ?></td>
+        <td><?php echo esc_html(get_field('current_status', $goal_id) ?: '—'); ?></td>
+        <td <?php if ($is_overdue) echo 'style="color: #c0392b; font-weight: bold;"'; ?>>
+            <?php echo esc_html($target_date); ?>
+        </td>
+        <td>
+            <a href="<?php echo esc_url(get_permalink($goal_id)); ?>">View</a> |
+            <a href="<?php echo esc_url(site_url('/edit-goal?goal_id=' . $goal_id)); ?>">Update</a>
+        </td>
+    </tr>
+    <?php
+}
+
+// --- 2. RENDER VIEW ---
+?>
+
+<div class="section-header">
+    <h2 class="section-title">Goal Tracker</h2>
+    <a class="button button-primary" href="<?php echo esc_url(site_url('/create-goal/')); ?>">Add Goal</a>
+</div>
+
+<!-- === Mid/Long-Term Goals Table === -->
+<h3>Mid/Long-Term Goals</h3>
+<?php if (empty($long_term_goals_data)) : ?>
+    <p>No active mid or long-term goals found.</p>
+<?php else : ?>
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th>Skater</th>
+                <th>Goal</th>
+                <th>Status</th>
+                <th>Target Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($long_term_goals_data as $goal) { spd_render_goal_row($goal); } ?>
+        </tbody>
+    </table>
+<?php endif; ?>
+
+<!-- === Active Weekly Goals Table === -->
+<h3 style="margin-top: 2.5rem;">Active Weekly Goals</h3>
+<?php if (empty($weekly_goals_data)) : ?>
+    <p>No weekly goals found for the upcoming 2 weeks.</p>
+<?php else : ?>
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th>Skater</th>
+                <th>Goal</th>
+                <th>Status</th>
+                <th>Target Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($weekly_goals_data as $goal) { spd_render_goal_row($goal); } ?>
+        </tbody>
+    </table>
+<?php endif; ?>
+
+<!-- === Missed or Stalled Goals Table === -->
+<h3 style="margin-top: 2.5rem;">Stalled or Missed Goals</h3>
+<?php if (empty($missed_goals_data)) : ?>
+    <p>No stalled or missed goals found.</p>
+<?php else : ?>
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th>Skater</th>
+                <th>Goal</th>
+                <th>Status</th>
+                <th>Target Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($missed_goals_data as $goal) { spd_render_goal_row($goal); } ?>
+        </tbody>
+    </table>
+<?php endif; ?>

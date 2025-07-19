@@ -19,7 +19,7 @@ if (!empty($visible_skater_ids)) {
         ];
     }
 
-    // Fetch ALL injury logs that are NOT marked as 'resolved'.
+    // Fetch ALL injury logs that are NOT marked as 'Resolved'.
     $injury_logs = get_posts([
         'post_type'   => 'injury_log',
         'numberposts' => -1, // Show all current injuries
@@ -28,7 +28,7 @@ if (!empty($visible_skater_ids)) {
             'relation' => 'AND',
             [
                 'key'     => 'recovery_status',
-                'value'   => 'resolved',
+                'value'   => 'Resolved',
                 'compare' => '!=', // Exclude injuries that are fully resolved
             ],
             $skater_meta_query, // Filter by visible skaters
@@ -44,8 +44,8 @@ if (!empty($visible_skater_ids)) {
         'Limited'     => '#e67e22', // orange
         'Modified'    => '#3498db', // blue
         'Resting'     => '#c0392b', // red
-        'Rehab'  => '#9b59b6', // purple
-        'Resolved'    => '#777777', // grey for resolved (though it won't be shown)
+        'Rehab'       => '#9b59b6', // purple
+        'Resolved'    => '#777777', // grey for resolved (won't be shown)
         'default'     => '#999',    // default grey
     ];
 
@@ -85,11 +85,10 @@ if (!empty($visible_skater_ids)) {
 // --- 2. RENDER VIEW ---
 ?>
 
-<h2>Current Injury & Health Log</h2>
-
-<p>
+<div class="section-header">
+    <h2 class="section-title">Current Injury & Health Log</h2>
     <a class="button button-primary" href="<?php echo esc_url(site_url('/create-injury-log/')); ?>">Add Injury Log</a>
-</p>
+</div>
 
 <?php if (empty($logs_data)) : ?>
 

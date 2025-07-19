@@ -279,3 +279,42 @@ function spd_get_country_flag_emoji($federation_code) {
     // Return the flag if it exists in our array, otherwise return an empty string.
     return $flags[$code] ?? ''; 
 }
+
+
+/**
+ * Calculates and formats a human-readable countdown to a future date.
+ *
+ * @param string $future_date_str A date string in 'Y-m-d' format.
+ * @return string A formatted string like "in 3 weeks", "in 5 days", or "Today".
+ */
+function spd_get_countdown_string($future_date_str) {
+    try {
+        $today = new DateTime();
+        $today->setTime(0, 0, 0); // Set time to midnight to ensure accurate day comparison
+
+        $future_date = new DateTime($future_date_str);
+        $future_date->setTime(0, 0, 0);
+
+        if ($today > $future_date) {
+            return 'Past';
+        }
+
+        $interval = $today->diff($future_date);
+        $days_left = $interval->days;
+
+        if ($days_left == 0) {
+            return 'Today';
+        }
+
+        if ($days_left < 7) {
+            return 'in ' . $days_left . ($days_left == 1 ? ' day' : ' days');
+        }
+
+        $weeks_left = floor($days_left / 7);
+        return 'in ' . $weeks_left . ($weeks_left == 1 ? ' week' : ' weeks');
+
+    } catch (Exception $e) {
+        // In case of an invalid date format
+        return '—';
+    }
+}
