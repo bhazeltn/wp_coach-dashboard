@@ -1,13 +1,11 @@
 <?php
 /**
  * Coach Dashboard Section: Skater Overview
- * * This template has been refactored for code style, UI consistency, and readability.
- * * Flag is now next to skater's name with a tooltip for the full federation name.
+ * * This template has been updated to use the centralized age calculation helper function.
  */
 
 // --- 1. PREPARE DATA ---
 $skaters = spd_get_visible_skaters();
-$today_ymd = date('Ymd');
 $skaters_data = [];
 
 if (!empty($skaters)) {
@@ -16,22 +14,21 @@ if (!empty($skaters)) {
         $skater_id   = $skater->ID;
         $skater_slug = $skater->post_name;
         
-        // Get the 3-letter code for the flag function by telling ACF not to format the value.
         $federation_code = get_field('federation', $skater_id, false);
-        // Get the full name label for the tooltip by letting ACF format the value (its default behavior).
         $federation_name = get_field('federation', $skater_id);
+
+        // Use the new helper function to calculate age as of July 1st.
+        $dob_raw = get_field('date_of_birth', $skater_id);
+        $age = function_exists('spd_get_skater_age_as_of_july_1') ? spd_get_skater_age_as_of_july_1($dob_raw) : '—';
 
         // Find the current yearly plan for this skater
         $current_plan_post = null;
+        $today_ymd = date('Ymd');
         $plans = get_posts([
             'post_type'   => 'yearly_plan',
             'numberposts' => -1,
             'post_status' => 'publish',
-            'meta_query'  => [[
-                'key'     => 'skater',
-                'value'   => '"' . $skater_id . '"',
-                'compare' => 'LIKE',
-            ]],
+            'meta_query'  => [['key' => 'skater', 'value' => '"' . $skater_id . '"', 'compare' => 'LIKE']],
         ]);
 
         foreach ($plans as $plan) {
@@ -39,7 +36,6 @@ if (!empty($skaters)) {
             if (is_array($season_dates) && !empty($season_dates['start_date']) && !empty($season_dates['end_date'])) {
                 $start_date_ymd = DateTime::createFromFormat('d/m/Y', $season_dates['start_date'])->format('Ymd');
                 $end_date_ymd   = DateTime::createFromFormat('d/m/Y', $season_dates['end_date'])->format('Ymd');
-
                 if ($today_ymd >= $start_date_ymd && $today_ymd <= $end_date_ymd) {
                     $current_plan_post = $plan;
                     break;
@@ -50,7 +46,7 @@ if (!empty($skaters)) {
         // Prepare data array for the view
         $skaters_data[] = [
             'name' => get_the_title($skater_id),
-            'age' => get_field('age', $skater_id) ?: '—',
+            'age' => $age,
             'level' => get_field('current_level', $skater_id) ?: '—',
             'federation_name' => is_string($federation_name) ? $federation_name : '',
             'flag_emoji' => function_exists('spd_get_country_flag_emoji') ? spd_get_country_flag_emoji($federation_code) : '',

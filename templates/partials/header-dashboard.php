@@ -5,37 +5,33 @@ if (!is_user_logged_in()) {
 }
 
 $current_user = wp_get_current_user();
-$user_roles = $current_user->roles;
+$user_roles = (array) $current_user->roles;
+$is_coach = in_array('coach', $user_roles) || in_array('administrator', $user_roles);
+$is_skater = in_array('skater', $user_roles);
 ?>
-
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
     <meta charset="<?php bloginfo('charset'); ?>">
-    <title>Skater Planning Dashboard</title>
-    <link rel="stylesheet" href="<?php echo plugin_dir_url(__FILE__); ?>../css/dashboard-style.css">
-    <?php wp_head(); ?>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoachOS Dashboard</title>
+    <?php 
+    // This function is crucial. It allows WordPress to add all enqueued styles and scripts.
+    wp_head(); 
+    ?>
 </head>
-<body>
+<body class="dashboard-body">
     <header class="dashboard-header">
         <div class="header-inner">
             <div class="site-title">
-                <a href="<?php echo esc_url(site_url('/')); ?>">Coach<span style="font-weight: 300;">OS</span></a>
-                <span class="site-tagline">Figure Skating Development & Performance Tracking</span>
+                <a href="<?php echo esc_url(site_url('/')); ?>">Coach<span>OS</span></a>
             </div>
             <nav class="dashboard-nav">
                 <ul>
-                    <?php if (in_array('coach', $user_roles)) : ?>
+                    <?php if ($is_coach) : ?>
                         <li><a href="<?php echo esc_url(site_url('/coach-dashboard')); ?>">Coach Dashboard</a></li>
                     <?php endif; ?>
-
-                    <?php if (in_array('skater', $user_roles)) : ?>
-                        <li><a href="<?php echo esc_url(site_url('/skater-dashboard')); ?>">Skater Dashboard</a></li>
-                    <?php endif; ?>
-
-                    <!-- Add other role views as needed -->
-
-                    <li><a href="<?php echo wp_logout_url(site_url('/')); ?>">Log Out</a></li>
+                    <li><a href="<?php echo wp_logout_url(home_url()); ?>">Log Out</a></li>
                 </ul>
             </nav>
         </div>

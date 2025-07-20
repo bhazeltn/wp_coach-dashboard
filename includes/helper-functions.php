@@ -318,3 +318,41 @@ function spd_get_countdown_string($future_date_str) {
         return '—';
     }
 }
+
+/**
+ * Calculates a skater's age as of July 1st for the current skating season.
+ *
+ * @param string $dob_raw The date of birth string from ACF (e.g., 'd/m/Y').
+ * @return int|string The calculated age as an integer, or '—' if invalid.
+ */
+function spd_get_skater_age_as_of_july_1($dob_raw) {
+    if (!$dob_raw) {
+        return '—';
+    }
+
+    try {
+        $dob = DateTime::createFromFormat('d/m/Y', $dob_raw);
+        if (!$dob) {
+            return '—'; // Handle potential parsing errors
+        }
+
+        $current_date = new DateTime();
+        $current_year = (int) $current_date->format('Y');
+        $july_1_this_year = new DateTime($current_year . '-07-01');
+
+        // Determine the correct July 1st to use for the current season.
+        // If we are before July 1st of the current year, the season is still the previous one.
+        if ($current_date < $july_1_this_year) {
+            $season_july_1 = $july_1_this_year->modify('-1 year');
+        } else {
+            $season_july_1 = $july_1_this_year;
+        }
+
+        $age = $season_july_1->diff($dob)->y;
+
+        return $age;
+
+    } catch (Exception $e) {
+        return '—'; // Return a fallback on any error
+    }
+}

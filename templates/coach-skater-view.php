@@ -1,165 +1,110 @@
 <?php
 /**
- * Template: Coach View of a Specific Skater
+ * Template: Individual Skater Dashboard
+ * This version has been updated to calculate age from date_of_birth.
  */
+
+// --- 1. PREPARE DATA & CHECK PERMISSIONS ---
+
 include plugin_dir_path(__FILE__) . 'partials/header-dashboard.php';
-if (!is_user_logged_in()) {
-    auth_redirect();
-}
-
 
 $skater_slug = get_query_var('skater_view');
-$skater = get_page_by_path($skater_slug, OBJECT, 'skater');
+$skater_post = get_page_by_path($skater_slug, OBJECT, 'skater');
 
-if (!$skater) {
-    wp_die('Skater not found.');
-}
+if (!$skater_post) { wp_die('Skater not found.'); }
 
+$skater_id = $skater_post->ID;
 $current_user = wp_get_current_user();
-$allowed = false;
-$roles = (array) $current_user->roles;
+$user_roles = (array) $current_user->roles;
+$is_current_user_a_skater = in_array('skater', $user_roles);
+$is_current_user_a_coach = in_array('coach', $user_roles) || in_array('administrator', $user_roles);
 
-error_log('👤 Current user: ' . $current_user->user_login . ' | Roles: ' . implode(', ', $roles));
-error_log('🔍 Skater post: ' . $skater->post_title . ' (ID: ' . $skater->ID . ')');
-
-// Coach/Admin check
-if (in_array('coach', $roles) || in_array('administrator', $roles)) {
-    error_log('✅ Coach or admin access granted.');
-    $allowed = true;
-}
-
-// Skater check
-if (in_array('skater', $roles)) {
-    $linked_user = get_field('skater_account', $skater->ID);
-    if ($linked_user && is_object($linked_user)) {
-        error_log('🔗 Linked user ID: ' . $linked_user->ID);
-        if ($linked_user->ID === $current_user->ID) {
-            error_log('✅ Skater is linked to this profile.');
-            $allowed = true;
-        } else {
-            error_log('❌ Skater is NOT linked to this profile.');
-        }
-    } else {
-        error_log('⚠️ No skater_account linked or not an object.');
+// --- Permission Check ---
+$is_allowed = false;
+if ($is_current_user_a_coach) {
+    $is_allowed = true;
+} elseif ($is_current_user_a_skater) {
+    $linked_user_field = get_field('skater_account', $skater_id);
+    $linked_user_id = is_array($linked_user_field) ? $linked_user_field['ID'] : $linked_user_field;
+    if ($linked_user_id && $linked_user_id == $current_user->ID) {
+        $is_allowed = true;
     }
 }
 
-if (!$allowed) {
-    error_log('🚫 Access denied.');
-    wp_die('You do not have permission to view this skater dashboard.');
-}
+if (!$is_allowed) { wp_die('You do not have permission to view this skater dashboard.'); }
 
-$is_skater = in_array('skater', (array) $current_user->roles);
+// --- Prepare Skater Profile Data ---
+$dob_raw = get_field('date_of_birth', $skater_id);
+$age = function_exists('spd_get_skater_age_as_of_july_1') ? spd_get_skater_age_as_of_july_1($dob_raw) : '—';
 
-echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
+$skater_data = [
+    'name'       => get_the_title($skater_id),
+    'age'        => $age,
+    'level'      => get_field('current_level', $skater_id),
+    'federation' => get_field('federation', $skater_id),
+    'club'       => get_field('home_club', $skater_id),
+    'notes'      => get_field('notes', $skater_id),
+    'edit_url'   => site_url('/edit-skater/' . $skater_id),
+];
 
-//get_header(); // ← This loads the <head> tag and enqueued styles/scripts
+$gap_analysis_post = get_posts(['post_type' => 'gap_analysis', 'numberposts' => 1, 'meta_query' => [['key' => 'skater', 'value' => $skater_id]]]);
 
-$skater_slug = get_query_var('skater_view');
-$skater = get_page_by_path($skater_slug, OBJECT, 'skater');
-
-if (!$skater) {
-    wp_die('Skater not found.');
-}
-
-$skater_id = $skater->ID;
 $GLOBALS['skater_id'] = $skater_id;
+$GLOBALS['is_skater'] = $is_current_user_a_skater;
 
-$edit_link  = $edit_url = site_url('/edit-skater/' . $skater_id);
-$age        = get_field('age', $skater_id);
-$level      = get_field('current_level', $skater_id);
-$federation = get_field('federation', $skater_id);
-$club       = get_field('home_club', $skater_id);
-$notes      = get_field('notes', $skater_id); // New WYSIWYG field
+// --- 2. RENDER VIEW ---
+?>
 
+<div class="wrap coach-dashboard">
 
-echo '<div class="wrap coach-dashboard">';
-if (!$is_skater){
-    echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">&larr; Back to Coach Dashboard</a></p>';
-}
-echo '<h1>' . esc_html(get_the_title($skater)) . '</h1>';
+    <div class="page-header">
+        <h1><?php echo esc_html($skater_data['name']); ?></h1>
+        <?php if ($is_current_user_a_coach) : ?>
+            <a class="button" href="<?php echo esc_url(site_url('/coach-dashboard')); ?>">&larr; Back to Coach Dashboard</a>
+        <?php endif; ?>
+    </div>
 
+    <div class="dashboard-box">
+        <ul style="list-style: none; padding-left: 0; margin: 0;">
+            <?php if ($skater_data['level']) echo '<li><strong>Level:</strong> ' . esc_html($skater_data['level']) . '</li>'; ?>
+            <?php if ($skater_data['age']) echo '<li><strong>Age (As of July 1):</strong> ' . esc_html($skater_data['age']) . '</li>'; ?>
+            <?php if ($skater_data['federation']) echo '<li><strong>Federation:</strong> ' . esc_html($skater_data['federation']) . '</li>'; ?>
+            <?php if ($skater_data['club']) echo '<li><strong>Home Club:</strong> ' . esc_html($skater_data['club']) . '</li>'; ?>
+        </ul>
 
-echo '<ul>';
-if ($level)      echo '<li><strong>Level:</strong> ' . esc_html($level) . '</li>';
-if ($age)        echo '<li><strong>Age</strong> <em>(As of July 1)</em><strong>:</strong> ' . esc_html($age) . '</li>';
-if ($federation) echo '<li><strong>Federation:</strong> ' . esc_html($federation) . '</li>';
-if ($club)       echo '<li><strong>Home Club:</strong> ' . esc_html($club) . '</li>';
-echo '</ul>';
-if (!$is_skater) {
-    if ($edit_link)  echo '<a class="button small" href="' . esc_url($edit_link) . '">Edit Skater Info</a>';
-}
+        <?php if ($skater_data['notes']) : ?>
+            <div class="skater-notes" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                <h4>Notes:</h4>
+                <?php echo wp_kses_post($skater_data['notes']); ?>
+            </div>
+        <?php endif; ?>
 
-// Output Notes section
-if ($notes) {
-    echo '<h2>Notes</h2>';
-    echo '<div class="skater-notes">' . wp_kses_post($notes) . '</div>';
-}
+        <div class="actions" style="margin-top: 1.5rem; display: flex; gap: 1rem; align-items: center; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+            <?php if ($is_current_user_a_coach) : ?>
+                <a class="button" href="<?php echo esc_url($skater_data['edit_url']); ?>">Edit Skater Info</a>
+                
+                <?php if (!empty($gap_analysis_post)) : ?>
+                    <a href="<?php echo esc_url(get_permalink($gap_analysis_post[0]->ID)); ?>">View Gap Analysis</a>
+                <?php else : ?>
+                    <a href="<?php echo esc_url(site_url('/create-gap-analysis/?skater_id=' . $skater_id)); ?>">Create Gap Analysis</a>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+    </div>
 
-// Gap Analysis Controls
-$gap_analysis = get_posts([
-    'post_type'   => 'gap_analysis',
-    'meta_query'  => [
-        [
-            'key'     => 'skater',
-            'value'   => $skater_id,
-            'compare' => '=',
-        ],
-    ],
-    'numberposts' => 1,
-]);
+    <?php
+    // --- Load all the individual section templates for this skater ---
+    include plugin_dir_path(__FILE__) . '../sections/skater/competition-highlights.php';
+    include plugin_dir_path(__FILE__) . '../sections/skater/injury-log.php';
+    include plugin_dir_path(__FILE__) . '../sections/skater/yearly-plans-summary.php';
+    include plugin_dir_path(__FILE__) . '../sections/skater/weekly-plans-tracker.php';
+    include plugin_dir_path(__FILE__) . '../sections/skater/goals.php';
+    include plugin_dir_path(__FILE__) . '../sections/skater/competitions-upcoming.php';
+    include plugin_dir_path(__FILE__) . '../sections/skater/competitions-results.php';
+    include plugin_dir_path(__FILE__) . '../sections/skater/programs.php';
+    include plugin_dir_path(__FILE__) . '../sections/skater/session-logs.php';
+    include plugin_dir_path(__FILE__) . '../sections/skater/meeting-upcoming.php';
+    include plugin_dir_path(__FILE__) . '../sections/skater/missed-goals.php';
+    ?>
 
-
-echo '<div class="gap-analysis-links" style="margin-bottom: 20px;">';
-if (!empty($gap_analysis)) {
-    $gap_id   = $gap_analysis[0]->ID;
-    $view_url = get_permalink($gap_id);
-    echo '<a class="button" href="' . esc_url($view_url) . '">View Gap Analysis</a> ';
-    
-    if (!$is_skater) {
-        $edit_url = home_url('/edit-gap-analysis/' . $gap_id . '/');
-        echo '<a class="button" href="' . esc_url($edit_url) . '">Update Gap Analysis</a>';
-    }
-} else {
-    if (!$is_skater) {
-        echo '<a class="button" href="' . esc_url(home_url('/create-gap-analysis/')) . '?skater_id=' . $skater_id . '">Create Gap Analysis</a>';
-    }
-}
-echo '</div>';
-
-// SECTION: Competition Highlights (PB, SB, CTES)
-include plugin_dir_path(__FILE__) . '../sections/skater/competition-highlights.php';
-
-// SECTION 1: Injury Log
-include plugin_dir_path(__FILE__) . '../sections/skater/injury-log.php';
-
-// SECTION 2: Yearly Plans
-include plugin_dir_path(__FILE__) . '../sections/skater/yearly-plans-summary.php';
-
-// SECTION 3: Weekly Plans
-include plugin_dir_path(__FILE__) . '../sections/skater/weekly-plans-tracker.php';
-
-// SECTION 4: Goals
-include plugin_dir_path(__FILE__) . '../sections/skater/goals.php';
-
-// SECTION 5: Upcoming Competitions
-include plugin_dir_path(__FILE__) . '../sections/skater/competitions-upcoming.php';
-
-// SECTION 6: Competition Results
-include plugin_dir_path(__FILE__) . '../sections/skater/competitions-results.php';
-
-// Section  : Programs
-include plugin_dir_path(__FILE__) . '../sections/skater/programs.php';
-
-// SECTION 7: Session Logs
-include plugin_dir_path(__FILE__) . '../sections/skater/session-logs.php';
-
-// Section  : Meetings 
-include plugin_dir_path(__FILE__) . '../sections/skater/meeting-upcoming.php';
-
-// SECTION 8: Missed or Stalled Goals
-include plugin_dir_path(__FILE__) . '../sections/skater/missed-goals.php';
-
-echo '</div>';
-
-//get_footer(); // ← Closes the page, loads enqueued scripts if needed
+</div>

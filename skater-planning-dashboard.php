@@ -16,6 +16,7 @@ include_once plugin_dir_path(__FILE__) . 'includes/cpt-program.php';
 include_once plugin_dir_path(__FILE__) . 'includes/cpt-meeting_log.php';
 include_once plugin_dir_path(__FILE__) . 'includes/cpt-injury_log.php';
 include_once plugin_dir_path(__FILE__) . 'includes/cpt-gap_analysis.php';
+include_once plugin_dir_path(__FILE__) . 'includes/cpt-ctes-requirements.php';
 
 
 // === Routing, Redirects, Helpers ===
@@ -48,3 +49,16 @@ add_action('template_redirect', function () {
     }
 }, 20);
 
+
+// === Conditional Style Loader (based on route context) ===
+add_action('wp_enqueue_scripts', function () {
+    // We check if either of our main query variables are set.
+    if (get_query_var('skater_view') || get_query_var('coach_dashboard')) {
+        wp_enqueue_style(
+            'skater-planning-dashboard-style',
+            plugin_dir_url(__FILE__) . 'css/dashboard-style.css',
+            [],
+            '1.4' // I've bumped the version number to help break browser cache
+        );
+    }
+});

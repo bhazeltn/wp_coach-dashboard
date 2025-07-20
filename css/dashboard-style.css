@@ -1,6 +1,6 @@
 /* ===================================================================
    CoachOS Stylesheet
-   Version: 1.4
+   Version: 1.5
    
    TABLE OF CONTENTS
    1. GLOBAL STYLES & VARIABLES
@@ -87,6 +87,21 @@ body {
   padding-right: 2rem;
 }
 
+/* Header for main dashboard pages */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  /* Space below the header */
+}
+
+.page-header h1 {
+  margin: 0;
+  /* Remove default h1 margin */
+}
+
+
 /* Header for dashboard sections */
 .section-header {
   display: flex;
@@ -98,12 +113,10 @@ body {
   margin-top: 2.5rem;
 }
 
-/* NEW: Container for multiple actions in a section header */
 .section-header .actions {
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  /* Space between the link and the button */
 }
 
 /* ===================================================================
@@ -124,7 +137,6 @@ h1 {
   margin: 0 0 1rem 0;
 }
 
-/* Default h2 style for contexts WITHOUT the new header */
 h2 {
   font-size: 1.5rem;
   margin: 2.5rem 0 1.5rem 0;
@@ -141,7 +153,6 @@ h4 {
   font-size: 1.1rem;
 }
 
-/* Dedicated style for titles inside a .section-header */
 .section-title {
   font-size: 1.5rem;
   margin: 0;
@@ -185,7 +196,6 @@ a:hover {
    4. UI COMPONENTS (Buttons, Tables, Cards, Forms)
 =================================================================== */
 
-/* --- Buttons --- */
 .button,
 .acf-button {
   display: inline-block;
@@ -222,7 +232,6 @@ a:hover {
   font-size: 0.85em;
 }
 
-/* --- Tables --- */
 .dashboard-table,
 .widefat {
   width: 100%;
@@ -256,7 +265,6 @@ a:hover {
   border-bottom: none;
 }
 
-/* --- Cards & Blocks --- */
 .plan-card,
 .dashboard-box {
   border: 1px solid var(--border-color);
@@ -278,7 +286,6 @@ a:hover {
   margin-top: 1.5em;
 }
 
-/* --- Forms (ACF) --- */
 .acf-form {
   background: var(--card-bg);
   border-radius: 8px;
@@ -331,7 +338,6 @@ a:hover {
    5. PAGE & SECTION SPECIFIC STYLES
 =================================================================== */
 
-/* --- Landing Page --- */
 .landing-hero {
   background: var(--dark-bg);
   color: white;
@@ -397,7 +403,6 @@ a:hover {
   color: var(--primary-color);
 }
 
-/* --- Dashboard Navigation --- */
 .dashboard-nav ul {
   list-style: none;
   margin: 0;
@@ -412,7 +417,6 @@ a:hover {
   font-weight: 500;
 }
 
-/* --- Yearly Plan Specifics --- */
 .macrocycle-toggle {
   margin: 1em 0;
   padding: 1em;
