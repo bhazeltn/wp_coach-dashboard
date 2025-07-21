@@ -1,150 +1,109 @@
 <?php
-// --- Competition Results Section ---
+/**
+ * Skater Dashboard Section: Competition Results
+ * This template has been refactored for code style, UI consistency, and permissions.
+ */
 
-$skater_id = $skater->ID;
-$GLOBALS['skater_id'] = $skater_id;
+// --- 1. PREPARE DATA ---
 
-echo '<h2>Competition Results</h2>';
-if (!$is_skater) {
-    echo '<p><a class="button" href="' . esc_url(site_url('/create-competition-result?skater_id=' . $skater_id)) . '">Add Competition Result</a></p>';
-}
+// These global variables are set in the parent coach-skater-view.php template.
+global $skater_id, $is_skater;
 
+$results_data = [];
+$today_ymd = date('Y-m-d');
 
-// Define current ISU season
-$season_year = (date('n') >= 7) ? date('Y') : date('Y') - 1;
-$season_start = $season_year . '-07-01';
-$season_end   = ($season_year + 1) . '-06-30';
-
+// Get all competition result entries for this skater.
 $results = get_posts([
     'post_type'   => 'competition_result',
     'numberposts' => -1,
     'post_status' => 'publish',
-    'meta_query'  => [[
-        'key'     => 'skater',
-        'value'   => '"' . $skater_id . '"',
-        'compare' => 'LIKE',
-    ]],
+    'meta_query'  => [['key' => 'skater', 'value' => '"' . $skater_id . '"', 'compare' => 'LIKE']]
 ]);
 
-$filtered = [];
-
+// Filter to find only the ones where the linked competition is in the past.
 foreach ($results as $result) {
-    $competition = get_field('linked_competition', $result->ID);
-    $comp_obj = is_array($competition) ? ($competition[0] ?? null) : $competition;
-    if (!$comp_obj || !is_object($comp_obj)) continue;
+    $competition_post_array = get_field('linked_competition', $result->ID);
+    if (empty($competition_post_array[0])) continue;
 
-    $comp_date = get_field('competition_date', $comp_obj->ID);
-    if ($comp_date >= $season_start && $comp_date <= $season_end) {
-        $filtered[] = [
-            'result' => $result,
-            'competition' => $comp_obj
+    $competition = $competition_post_array[0];
+    $comp_date_raw = get_field('competition_date', $competition->ID);
+
+    if ($comp_date_raw && $comp_date_raw < $today_ymd) {
+        $date_obj = DateTime::createFromFormat('Y-m-d', $comp_date_raw);
+
+        $comp_score = get_field('comp_score', $result->ID) ?: [];
+        $placement = $comp_score['placement'] ?? null;
+        $total_score = $comp_score['total_competition_score'] ?? '—';
+        
+        $medal = '';
+        if ($placement) {
+            if ($placement == 1) $medal = ' 🥇';
+            if ($placement == 2) $medal = ' 🥈';
+            if ($placement == 3) $medal = ' 🥉';
+        }
+
+        $results_data[] = [
+            'name'       => get_the_title($competition),
+            'date'       => $date_obj ? $date_obj->format('M j, Y') : '—',
+            'level'      => get_field('level', $result->ID) ?: '—',
+            'placement'  => ($placement ?: '—') . $medal,
+            'total_score'=> is_numeric($total_score) ? number_format($total_score, 2) : '—',
+            'view_url'   => get_permalink($result->ID),
+            'edit_url'   => site_url('/edit-competition-result/' . $result->ID),
+            'sort_date'  => $comp_date_raw,
         ];
     }
 }
 
-if ($filtered) {
-    echo '<table class="widefat fixed striped">';
-    echo '<thead><tr>
-        <th>Competition</th>
-        <th>Segment</th>
-        <th>TES</th>
-        <th>PCS</th>
-        <th>Total</th>
-        <th>Placement</th>
-        <th>Actions</th>
-    </tr></thead><tbody>';
+// Sort the final array by the competition date, most recent first.
+usort($results_data, function ($a, $b) {
+    return strtotime($b['sort_date']) <=> strtotime($a['sort_date']);
+});
 
-    foreach ($filtered as $entry) {
-        $r = $entry['result'];
-        $c = $entry['competition'];
+// --- 2. RENDER VIEW ---
+?>
 
-        $tes   = get_field('scores', $r->ID);       // renamed from 'technical_element_scores'
-        $pcs   = get_field('fs_scores', $r->ID);    // renamed from 'program_component_scores'
-        $sp_score = get_field('sp_score_place', $r->ID);
-        $fs_score = get_field('fs_score', $r->ID);
-        $comp_score = get_field('comp_score', $r->ID);
+<div class="section-header">
+    <h2 class="section-title">Competition Results</h2>
+    <?php if (!$is_skater) : ?>
+        <a class="button button-primary" href="<?php echo esc_url(site_url('/create-competition-result/?skater_id=' . $skater_id)); ?>">Add Past Result</a>
+    <?php endif; ?>
+</div>
 
-        // Placement
-        $placement = $comp_score['placement'] ?? null;
-        $place = $placement ?: '—';
-        $medal = ($placement == 1) ? ' 🥇' : (($placement == 2) ? ' 🥈' : (($placement == 3) ? ' 🥉' : ''));
+<?php if (empty($results_data)) : ?>
 
-        // Segment scores
-        $tes_sp = floatval($tes['tes_sp'] ?? 0);
-        $tes_fs = floatval($pcs['tes_fs'] ?? 0);
-        $pcs_sp = floatval($tes['pcs_sp'] ?? 0);
-        $pcs_fp = floatval($pcs['pcs_fp'] ?? 0);
+    <p>No past competition results found for this skater.</p>
 
-        // Manual total
-        $total_tes = $tes_sp + $tes_fs;
-        $total_pcs = $pcs_sp + $pcs_fp;
-        $total_combined = $total_tes + $total_pcs;
+<?php else : ?>
 
-        // Fallback to stored total_competition_score
-        $stored_total = $comp_score['total_competition_score'] ?? 0;
-        $show_manual_total = ($tes_sp || $tes_fs || $pcs_sp || $pcs_fp);
-        $total_score_value = $show_manual_total ? $total_combined : floatval($stored_total);
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th>Competition</th>
+                <th>Date</th>
+                <th>Level</th>
+                <th>Placement</th>
+                <th>Total Score</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($results_data as $result) : ?>
+                <tr>
+                    <td><?php echo esc_html($result['name']); ?></td>
+                    <td><?php echo esc_html($result['date']); ?></td>
+                    <td><?php echo esc_html($result['level']); ?></td>
+                    <td><?php echo esc_html($result['placement']); ?></td>
+                    <td><?php echo esc_html($result['total_score']); ?></td>
+                    <td>
+                        <a href="<?php echo esc_url($result['view_url']); ?>">View</a>
+                        <?php if (!$is_skater) : ?>
+                            | <a href="<?php echo esc_url($result['edit_url']); ?>">Update</a>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
 
-        $level = get_field('level', $r->ID);
-        $comp_name = esc_html(get_the_title($c->ID) . ($level ? ' – ' . $level : ''));
-        $rows = [];
-
-        if ($total_score_value > 0) {
-            $rows[] = [
-                'segment'   => '<strong>Total</strong>',
-                'tes'       => number_format($total_tes, 2),
-                'pcs'       => number_format($total_pcs, 2),
-                'total'     => number_format($total_score_value, 2),
-                'placement' => esc_html($place . $medal),
-            ];
-        }
-
-        // Short Program row
-        if (!empty($tes['tes_sp']) || !empty($tes['pcs_sp'])) {
-            $rows[] = [
-                'segment'   => 'Short Program',
-                'tes'       => number_format((float)($tes['tes_sp'] ?? 0), 2),
-                'pcs'       => number_format((float)($tes['pcs_sp'] ?? 0), 2),
-                'total'     => number_format((float)($sp_score['short_program_score'] ?? 0), 2),
-                'placement' => '',
-            ];
-        }
-
-        // Free Skate row
-        if (!empty($pcs['tes_fs']) || !empty($pcs['pcs_fp'])) {
-            $rows[] = [
-                'segment'   => 'Free Skate',
-                'tes'       => number_format((float)($pcs['tes_fs'] ?? 0), 2),
-                'pcs'       => number_format((float)($pcs['pcs_fp'] ?? 0), 2),
-                'total'     => number_format((float)($fs_score['free_program_score'] ?? 0), 2),
-                'placement' => '',
-            ];
-        }
-
-        if (empty($rows)) continue;
-
-        foreach ($rows as $i => $row) {
-            echo '<tr>';
-            echo '<td>' . ($i === 0 ? $comp_name : '') . '</td>';
-            echo '<td>' . $row['segment'] . '</td>';
-            echo '<td>' . $row['tes'] . '</td>';
-            echo '<td>' . $row['pcs'] . '</td>';
-            echo '<td>' . $row['total'] . '</td>';
-            echo '<td>' . $row['placement'] . '</td>';
-
-            if ($i === 0) {
-                if (!$is_skater) {
-                    echo '<td><a href="' . esc_url(get_permalink($r->ID)) . '">View</a> | <a href="' . esc_url(site_url('/edit-competition-result/' . $r->ID . '/')) . '">Update</a></td>';
-                }
-            } else {
-                echo '<td></td>';
-            }
-
-            echo '</tr>';
-        }
-    }
-
-    echo '</tbody></table>';
-} else {
-    echo '<p>No competition results found for this season.</p>';
-}
+<?php endif; ?>

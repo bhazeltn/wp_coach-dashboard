@@ -1,93 +1,103 @@
 <?php
-// --- Skater-Specific: Upcoming Competitions ---
+/**
+ * Skater Dashboard Section: Upcoming Competitions
+ * This template has been refactored for code style, UI consistency, and permissions.
+ */
 
-$skater_id = $GLOBALS['skater_id'] ?? null;
+// --- 1. PREPARE DATA ---
 
-echo '<h2>Upcoming Competitions</h2>';
+// These global variables are set in the parent coach-skater-view.php template.
+global $skater_id, $is_skater;
 
-if (!$skater_id) {
-    echo '<p>No skater selected.</p>';
-    return;
-}
+$upcoming_data = [];
+$today_ymd = date('Y-m-d');
 
-$today = date('Y-m-d');
-
-// Get all competition_result posts for this skater
+// Get all competition result entries for this skater.
 $results = get_posts([
     'post_type'   => 'competition_result',
     'numberposts' => -1,
     'post_status' => 'publish',
-    'meta_query'  => [[
-        'key'     => 'skater',
-        'value'   => '"' . $skater_id . '"',
-        'compare' => 'LIKE',
-    ]]
+    'meta_query'  => [['key' => 'skater', 'value' => '"' . $skater_id . '"', 'compare' => 'LIKE']]
 ]);
 
-$upcoming = [];
+// Filter to find only the ones where the linked competition is in the future.
+foreach ($results as $result) {
+    $competition_post_array = get_field('linked_competition', $result->ID);
+    if (empty($competition_post_array[0])) continue;
 
-foreach ($results as $r) {
-    $comp = get_field('linked_competition', $r->ID);
-    $comp = is_array($comp) ? ($comp[0] ?? null) : $comp;
+    $competition = $competition_post_array[0];
+    $comp_date_raw = get_field('competition_date', $competition->ID);
 
-    if ($comp && is_object($comp)) {
-        $date = get_field('competition_date', $comp->ID);
-        if ($date && $date >= $today) {
-            $upcoming[] = [
-                'result'      => $r,
-                'competition' => $comp
-            ];
-        }
+    if ($comp_date_raw && $comp_date_raw >= $today_ymd) {
+        $date_obj = DateTime::createFromFormat('Y-m-d', $comp_date_raw);
+        $upcoming_data[] = [
+            'name'       => get_the_title($competition),
+            'date'       => $date_obj ? $date_obj->format('M j, Y') : '—',
+            'countdown'  => function_exists('spd_get_countdown_string') ? spd_get_countdown_string($comp_date_raw) : '',
+            'type'       => get_field('competition_type', $competition) ?: '—',
+            'level'      => get_field('level', $result->ID) ?: '—',
+            'discipline' => get_field('discipline', $result->ID) ?: '—',
+            'location'   => get_field('competition_location', $competition) ?: '—',
+            'view_url'   => get_permalink($result->ID),
+            'edit_url'   => site_url('/edit-competition-result/' . $result->ID),
+            'sort_date'  => $comp_date_raw,
+        ];
     }
 }
 
-if ($upcoming) {
-    echo '<table class="widefat fixed striped">';
-    echo '<thead><tr><th>Name</th><th>Date</th><th>Type</th><th>Level</th><th>Discipline</th><th>Location</th><th>Actions</th></tr></thead>';
-    echo '<tbody>';
+// Sort the final array by the competition date.
+usort($upcoming_data, function ($a, $b) {
+    return strtotime($a['sort_date']) <=> strtotime($b['sort_date']);
+});
 
-    usort($upcoming, function ($a, $b) {
-        $dateA = get_field('competition_date', $a['competition']->ID);
-        $dateB = get_field('competition_date', $b['competition']->ID);
-        return strtotime($dateA) <=> strtotime($dateB); // Ascending
-    });
 
-    foreach ($upcoming as $entry) {
-        $r = $entry['result'];
-        $c = $entry['competition'];
+// --- 2. RENDER VIEW ---
+?>
 
-        $name       = get_the_title($c->ID);
-        $date       = get_field('competition_date', $c->ID) ?: '—';
-        $level      = get_field('level', $r->ID) ?: '—';
-        $discipline = get_field('discipline', $r->ID) ?: '—';
-        $location   = get_field('competition_location', $c->ID) ?: '—';
-        $type = get_field('competition_type', $c->ID) ?: '—';
-        $view_url = get_permalink($r->ID);
-        $edit_url = site_url('/edit-competition-result/' . $r->ID);
+<div class="section-header">
+    <h2 class="section-title">Upcoming Competitions</h2>
+    <?php if (!$is_skater) : ?>
+        <div class="actions">
+            <a href="<?php echo esc_url(site_url('/view-all-competitions/')); ?>">Manage All Competitions</a>
+            <a class="button button-primary" href="<?php echo esc_url(site_url('/create-competition-result/?skater_id=' . $skater_id)); ?>">Add Skater Entry</a>
+        </div>
+    <?php endif; ?>
+</div>
 
-        echo '<tr>';
-        echo '<td>' . esc_html($name) . '</td>';
-        echo '<td>' . esc_html($date) . '</td>';
-        echo '<td>' . esc_html($type) . '</td>';
-        echo '<td>' . esc_html($level) . '</td>';
-        echo '<td>' . esc_html($discipline) . '</td>';
-        echo '<td>' . esc_html($location) . '</td>';
-        if (!$is_skater) {
-            echo '<td><a href="' . esc_url($view_url) . '">View</a> | <a href="' . esc_url($edit_url) . '">Update</a></td>';
-        } else {
-            echo '<td><a href="' . esc_url($view_url) . '">View</a></td>';
-        }
-        echo '</tr>';
+<?php if (empty($upcoming_data)) : ?>
 
-    }
+    <p>No upcoming competitions found for this skater.</p>
 
-    echo '</tbody></table>';
-} else {
-    echo '<p>No upcoming competitions found.</p>';
-}
+<?php else : ?>
 
-// Button to add new competition
-if (!$is_skater) {
-    echo '<p><a class="button" href="' . esc_url(site_url('/create-competition')) . '">Add Competition</a></p>';
-}
+    <table class="dashboard-table">
+        <thead>
+            <tr>
+                <th>Competition</th>
+                <th>Date</th>
+                <th>Countdown</th>
+                <th>Level</th>
+                <th>Discipline</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($upcoming_data as $comp) : ?>
+                <tr>
+                    <td><?php echo esc_html($comp['name']); ?></td>
+                    <td><?php echo esc_html($comp['date']); ?></td>
+                    <td><span style="font-style: italic; color: var(--text-muted);"><?php echo esc_html($comp['countdown']); ?></span></td>
+                    <td><?php echo esc_html($comp['level']); ?></td>
+                    <td><?php echo esc_html($comp['discipline']); ?></td>
+                    <td>
+                        <a href="<?php echo esc_url($comp['view_url']); ?>">View</a>
+                        <?php if (!$is_skater) : ?>
+                            | <a href="<?php echo esc_url($comp['edit_url']); ?>">Update</a>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
 
+<?php endif; ?>

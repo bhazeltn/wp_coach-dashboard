@@ -62,8 +62,7 @@ $GLOBALS['is_skater'] = $is_current_user_a_skater;
     include plugin_dir_path(__FILE__) . '../sections/skater/programs.php';
     include plugin_dir_path(__FILE__) . '../sections/skater/session-logs.php';
     include plugin_dir_path(__FILE__) . '../sections/skater/meeting-upcoming.php';
-    include plugin_dir_path(__FILE__) . '../sections/skater/missed-goals.php';
-    // Note: The competition-highlights.php is no longer needed as its data is now in the profile.
+
     ?>
 
 </div>
