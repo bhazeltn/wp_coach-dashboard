@@ -356,3 +356,309 @@ function spd_get_skater_age_as_of_july_1($dob_raw) {
         return '—'; // Return a fallback on any error
     }
 }
+
+/**
+ * Fetches the CTES requirements from the most recent 'CTES Requirement' post.
+ *
+ * @return array An array of the CTES values, or an empty array if not found.
+ */
+function spd_get_current_season_ctes() {
+    $args = [
+        'post_type'      => 'ctes_requirement',
+        'posts_per_page' => 1,
+        'orderby'        => 'date', // More robust: sort by creation date
+        'order'          => 'DESC', // Get the most recently created one
+    ];
+    $ctes_posts = get_posts($args);
+
+    if (empty($ctes_posts)) {
+        return [];
+    }
+    
+    $post_id = $ctes_posts[0]->ID;
+    
+    // Fetches all fields from the ACF group for this post
+    return get_fields($post_id);
+}
+
+
+/**
+ * Calculates a skater's PB, SB, and CTES with detailed segment breakdowns.
+ * This version returns competition IDs for creating links.
+ *
+ * @param int $skater_id The ID of the skater.
+ * @return array A structured array with detailed performance data.
+ */
+function spd_get_skater_performance_summary($skater_id) {
+    $summary = [
+        'personal_best' => [
+            'total' => ['score' => 0, 'competition' => 'N/A'],
+            'short' => ['score' => 0, 'competition' => 'N/A'],
+            'free'  => ['score' => 0, 'competition' => 'N/A'],
+        ],
+        'season_best'   => [
+            'total' => ['score' => 0, 'competition' => 'N/A'],
+            'short' => ['score' => 0, 'competition' => 'N/A'],
+            'free'  => ['score' => 0, 'competition' => 'N/A'],
+        ],
+        'ctes'          => [
+            'score'       => 0,
+            'short_tes'   => 0,
+            'short_comp'  => 'N/A',
+            'short_comp_id' => 0,
+            'free_tes'    => 0,
+            'free_comp'   => 'N/A',
+            'free_comp_id'  => 0,
+        ],
+    ];
+
+    $results = get_posts([
+        'post_type'   => 'competition_result',
+        'numberposts' => -1,
+        'meta_query'  => [['key' => 'skater', 'value' => '"' . $skater_id . '"', 'compare' => 'LIKE']],
+    ]);
+
+    if (empty($results)) {
+        return $summary;
+    }
+
+    $valid_isu_comp_types = ['ISU International', 'Grand Prix', 'ISU Championships'];
+
+    $today = new DateTime();
+    $july_1_this_year = new DateTime(date('Y') . '-07-01');
+    $season_start = ($today < $july_1_this_year) ? (clone $july_1_this_year)->modify('-1 year') : $july_1_this_year;
+    $window_start = (clone $season_start)->modify('-1 year');
+
+    foreach ($results as $result) {
+        $competition_post_array = get_field('linked_competition', $result->ID);
+        if (empty($competition_post_array[0])) continue;
+        
+        $competition_post = $competition_post_array[0];
+        $comp_date_raw = get_field('competition_date', $competition_post->ID);
+        if (empty($comp_date_raw)) continue;
+
+        $comp_date = new DateTime($comp_date_raw);
+        $comp_type = get_field('competition_type', $competition_post->ID);
+        $comp_name = get_the_title($competition_post);
+        
+        $comp_score = get_field('comp_score', $result->ID) ?: [];
+        $sp_score_place = get_field('sp_score_place', $result->ID) ?: [];
+        $fs_score_field = get_field('fs_score', $result->ID) ?: [];
+        
+        $total_score = floatval($comp_score['total_competition_score'] ?? 0);
+        $sp_total = floatval($sp_score_place['short_program_score'] ?? 0);
+        $fs_total = floatval($fs_score_field['free_program_score'] ?? 0);
+
+        if ($total_score > $summary['personal_best']['total']['score']) {
+            $summary['personal_best']['total']['score'] = $total_score;
+            $summary['personal_best']['total']['competition'] = $comp_name;
+        }
+        if ($sp_total > $summary['personal_best']['short']['score']) {
+            $summary['personal_best']['short']['score'] = $sp_total;
+            $summary['personal_best']['short']['competition'] = $comp_name;
+        }
+        if ($fs_total > $summary['personal_best']['free']['score']) {
+            $summary['personal_best']['free']['score'] = $fs_total;
+            $summary['personal_best']['free']['competition'] = $comp_name;
+        }
+
+        if ($comp_date >= $season_start) {
+            if ($total_score > $summary['season_best']['total']['score']) {
+                $summary['season_best']['total']['score'] = $total_score;
+                $summary['season_best']['total']['competition'] = $comp_name;
+            }
+            if ($sp_total > $summary['season_best']['short']['score']) {
+                $summary['season_best']['short']['score'] = $sp_total;
+                $summary['season_best']['short']['competition'] = $comp_name;
+            }
+            if ($fs_total > $summary['season_best']['free']['score']) {
+                $summary['season_best']['free']['score'] = $fs_total;
+                $summary['season_best']['free']['competition'] = $comp_name;
+            }
+        }
+        
+        if (in_array($comp_type, $valid_isu_comp_types) && $comp_date >= $window_start) {
+            $scores = get_field('scores', $result->ID) ?: [];
+            $fs_scores = get_field('fs_scores', $result->ID) ?: [];
+            $sp_tes = floatval($scores['tes_sp'] ?? 0);
+            $fs_tes = floatval($fs_scores['tes_fs'] ?? 0);
+
+            if ($sp_tes > $summary['ctes']['short_tes']) {
+                $summary['ctes']['short_tes'] = $sp_tes;
+                $summary['ctes']['short_comp'] = $comp_name;
+                $summary['ctes']['short_comp_id'] = $competition_post->ID;
+            }
+            if ($fs_tes > $summary['ctes']['free_tes']) {
+                $summary['ctes']['free_tes'] = $fs_tes;
+                $summary['ctes']['free_comp'] = $comp_name;
+                $summary['ctes']['free_comp_id'] = $competition_post->ID;
+            }
+        }
+    }
+
+    $summary['ctes']['score'] = $summary['ctes']['short_tes'] + $summary['ctes']['free_tes'];
+
+    return $summary;
+}
+
+
+
+
+
+/**
+ * Calculates a skater's progress towards their custom TES targets.
+ *
+ * @param int $skater_id The ID of the skater.
+ * @return array A structured array with the progress for each custom target.
+ */
+function spd_get_custom_tes_targets_progress($skater_id) {
+    $custom_targets = get_field('minimum_scores', $skater_id);
+    $progress_data = [];
+
+    if (empty($custom_targets)) {
+        return $progress_data;
+    }
+
+    // Fetch all competition results for the skater just once for efficiency.
+    $results = get_posts([
+        'post_type'   => 'competition_result',
+        'numberposts' => -1,
+        'meta_query'  => [['key' => 'skater', 'value' => '"' . $skater_id . '"', 'compare' => 'LIKE']],
+    ]);
+
+    if (empty($results)) {
+        // If there are no results, we can't have achieved any targets.
+        // Still, we should return the targets so the UI can show 0 progress.
+        foreach ($custom_targets as $target) {
+             $progress_data[] = [
+                'name' => $target['event'] ?: 'Untitled Target',
+                'target_score' => floatval($target['minimum_technical_score']),
+                'achieved_score' => 0,
+            ];
+        }
+        return $progress_data;
+    }
+
+    // Loop through each custom target defined for the skater.
+    foreach ($custom_targets as $target) {
+        $target_score = floatval($target['minimum_technical_score']);
+        $start_date_obj = !empty($target['start_date']) ? DateTime::createFromFormat('d/m/Y', $target['start_date']) : null;
+        $end_date_obj = !empty($target['end_date']) ? DateTime::createFromFormat('d/m/Y', $target['end_date']) : null;
+        
+        $highest_tes_in_range = 0;
+
+        // Now, loop through the skater's results to find the best score for this target.
+        foreach ($results as $result) {
+            $competition_post_array = get_field('linked_competition', $result->ID);
+            if (empty($competition_post_array[0])) continue;
+
+            $competition_post = $competition_post_array[0];
+            $comp_date_raw = get_field('competition_date', $competition_post->ID);
+            if (empty($comp_date_raw)) continue;
+
+            $comp_date_obj = DateTime::createFromFormat('Y-m-d', $comp_date_raw);
+
+            // Check if the competition date is within the target's valid range.
+            $is_in_range = true; // Assume it's valid unless proven otherwise.
+            if ($start_date_obj && $comp_date_obj < $start_date_obj) {
+                $is_in_range = false;
+            }
+            if ($end_date_obj && $comp_date_obj > $end_date_obj) {
+                $is_in_range = false;
+            }
+
+            if ($is_in_range) {
+                // Find the highest TES from either segment in this competition.
+                $scores = get_field('scores', $result->ID);
+                $fs_scores = get_field('fs_scores', $result->ID);
+                $sp_tes = isset($scores['tes_sp']) ? floatval($scores['tes_sp']) : 0;
+                $fs_tes = isset($fs_scores['tes_fs']) ? floatval($fs_scores['tes_fs']) : 0;
+                
+                $highest_in_comp = max($sp_tes, $fs_tes);
+
+                // If this is the best score we've found so far for this target, update it.
+                if ($highest_in_comp > $highest_tes_in_range) {
+                    $highest_tes_in_range = $highest_in_comp;
+                }
+            }
+        }
+
+        // Add the calculated progress to our results array.
+        $progress_data[] = [
+            'name' => $target['event'] ?: 'Untitled Target',
+            'target_score' => $target_score,
+            'achieved_score' => $highest_tes_in_range,
+        ];
+    }
+
+    return $progress_data;
+}
+
+/**
+ * Finds and categorizes a skater's notable competition accomplishments.
+ *
+ * @param int $skater_id The ID of the skater.
+ * @return array A structured array with 'major' and 'other' accomplishments.
+ */
+function spd_get_notable_accomplishments($skater_id) {
+    $accomplishments = [
+        'major' => [],
+        'other' => [],
+    ];
+
+    $results = get_posts([
+        'post_type'   => 'competition_result',
+        'numberposts' => -1,
+        'meta_query'  => [['key' => 'skater', 'value' => '"' . $skater_id . '"', 'compare' => 'LIKE']],
+    ]);
+
+    if (empty($results)) {
+        return $accomplishments;
+    }
+
+    $major_event_types = [
+        'ISU Championships',
+        'National Championships',
+        'Provincial/State Championships',
+        'Grand Prix',
+    ];
+
+    $medal_emojis = [
+        '1' => '🥇',
+        '2' => '🥈',
+        '3' => '🥉',
+    ];
+
+    foreach ($results as $result) {
+        $comp_score = get_field('comp_score', $result->ID) ?: [];
+        $placement = $comp_score['placement'] ?? null;
+
+        if (!$placement) {
+            continue;
+        }
+
+        $competition_post_array = get_field('linked_competition', $result->ID);
+        if (empty($competition_post_array[0])) continue;
+
+        $competition_post = $competition_post_array[0];
+        $comp_type = get_field('competition_type', $competition_post->ID);
+        $comp_name = get_the_title($competition_post);
+
+        $is_major_podium = in_array($comp_type, $major_event_types) && in_array($placement, ['1', '2', '3']);
+        $is_other_win = ($placement == '1');
+
+        $medal = $medal_emojis[$placement] ?? '';
+        $formatted_string = trim($medal . ' ' . $placement . 'st/nd/rd/th Place - ' . $comp_name);
+        // Basic grammar correction for 1st, 2nd, 3rd
+        $formatted_string = str_replace(['1st/nd/rd/th', '2st/nd/rd/th', '3st/nd/rd/th'], ['1st', '2nd', '3rd'], $formatted_string);
+
+
+        if ($is_major_podium) {
+            $accomplishments['major'][] = $formatted_string;
+        } elseif ($is_other_win) {
+            $accomplishments['other'][] = $formatted_string;
+        }
+    }
+
+    return $accomplishments;
+}

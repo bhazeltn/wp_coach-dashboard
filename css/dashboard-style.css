@@ -436,3 +436,159 @@ a:hover {
   border-top: 1px solid var(--border-color);
   margin: 2em 0 1em;
 }
+
+.skater-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.profile-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.profile-list li {
+  margin-bottom: 1.5rem;
+}
+
+.profile-list li>strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.profile-list small {
+  color: var(--text-muted);
+  font-style: italic;
+  display: block;
+  font-size: 0.9em;
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+
+.score-breakdown {
+  list-style: none;
+  padding-left: 1rem;
+  margin-top: 0.5rem;
+}
+
+.score-breakdown li {
+  margin-bottom: 0.25rem;
+}
+
+.profile-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.profile-section.actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.progress-bar-container {
+  background-color: #e9ecef;
+  border-radius: .25rem;
+  height: 1rem;
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+
+.progress-bar {
+  background-color: var(--primary-color);
+  height: 100%;
+  transition: width .6s ease, background-color .6s ease;
+}
+
+.progress-bar.is-achieved {
+  background-color: #48bb78;
+  /* A nice green for success */
+}
+
+.is-achieved-text {
+  color: #c0392b;
+  /* A red to highlight the target score */
+  font-weight: 700;
+}
+
+/* CTES Breakdown Table Styles */
+.ctes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.ctes-breakdown-table {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  text-align: center;
+  font-size: 0.9em;
+}
+
+.ctes-breakdown-row {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  background-color: #fff;
+}
+
+.ctes-breakdown-row>div {
+  padding: 0.5rem;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+}
+
+.ctes-breakdown-row>div:last-child {
+  border-right: none;
+}
+
+.ctes-breakdown-row.is-header {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.ctes-breakdown-row.is-footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid var(--border-color);
+  grid-template-columns: 1.5fr 1.5fr 1fr;
+}
+
+.ctes-breakdown-row.is-footer>div {
+  text-align: center;
+}
+
+.needs-text {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+/* Notable Accomplishments Styles */
+.accomplishments-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5rem 0 1.5rem 0;
+}
+
+.accomplishments-list li {
+  margin-bottom: 0.5rem;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.profile-section h5 {
+  font-size: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
