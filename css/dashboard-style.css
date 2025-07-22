@@ -1,6 +1,6 @@
 /* ===================================================================
    CoachOS Stylesheet
-   Version: 1.5
+   Version: 1.7
    
    TABLE OF CONTENTS
    1. GLOBAL STYLES & VARIABLES
@@ -8,6 +8,7 @@
    3. TYPOGRAPHY
    4. UI COMPONENTS (Buttons, Tables, Cards, Forms)
    5. PAGE & SECTION SPECIFIC STYLES
+   6. VENDOR OVERRIDE FIXES
 =================================================================== */
 
 /* ===================================================================
@@ -591,4 +592,31 @@ a:hover {
   margin-top: 1rem;
   margin-bottom: 0.5rem;
   font-weight: 600;
+}
+
+/* ===================================================================
+   6. VENDOR OVERRIDE FIXES
+=================================================================== */
+
+/*
+ * ACF Front-End WYSIWYG Editor Fix
+ * ------------------------------------------------------------------
+ * This block fixes style conflicts caused by the global `box-sizing: border-box`
+ * rule and overly broad button styles, which break the TinyMCE editor toolbar.
+ */
+
+/* 1. Reset box-sizing for the editor and all its children */
+.acf-field .mce-container,
+.acf-field .mce-container * {
+  box-sizing: content-box !important;
+}
+
+/* 2. Specifically reset button styles within the editor toolbar */
+.acf-field .mce-btn button {
+  all: revert !important;
+  /* Revert all properties to the browser's default stylesheet */
+  display: block !important;
+  /* Ensure the button fills its container */
+  padding: 3px !important;
+  /* Add a small padding for usability */
 }

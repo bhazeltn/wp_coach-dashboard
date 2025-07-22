@@ -9,7 +9,7 @@ if (!in_array('coach', (array) $current_user->roles) && !in_array('administrator
     wp_die('You do not have permission to view this dashboard.');
 }
 
-echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
+//echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
 
 
 
@@ -32,3 +32,6 @@ coach_dashboard_section('session_logs');
 echo '</div>'; 
 
 //get_footer();
+include plugin_dir_path(__FILE__) . 'partials/footer.php';
+
+?>

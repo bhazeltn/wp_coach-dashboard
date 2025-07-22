@@ -66,3 +66,5 @@ $GLOBALS['is_skater'] = $is_current_user_a_skater;
     ?>
 
 </div>
+
+<?php include plugin_dir_path(__FILE__) . 'partials/footer.php'; ?>
