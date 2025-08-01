@@ -1,66 +1,110 @@
 <?php
 /**
- * Template: View Single Meeting Log
+ * The template for displaying a single Meeting Log entry.
+ *
+ * This template provides a detailed view of a meeting, including
+ * its participants, date, type, and summary notes.
+ *
+ * @package Coach_Operating_System
+ * @since 1.0.0
  */
 
-get_header();
-echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
+// Load the dashboard-specific header.
+include plugin_dir_path( __FILE__ ) . '../partials/header-dashboard.php';
 
-if (!is_user_logged_in()) {
+// Redirect user if they are not logged in.
+if ( ! is_user_logged_in() ) {
     auth_redirect();
 }
 
-global $post;
-setup_postdata($post);
+?>
 
-// Fields
-$skaters = get_field('skater');
-$meeting_date_raw = get_field('meeting_date');
+<div class="wrap coach-dashboard">
+    <?php
+    // Start the WordPress loop.
+    if ( have_posts() ) :
+        while ( have_posts() ) :
+            the_post();
 
-if (!empty($meeting_date_raw)) {
-    $date_obj = DateTime::createFromFormat('d/m/Y', $meeting_date_raw);
-    $formatted_date = $date_obj ? $date_obj->format('F j, Y') : '';
-} else {
-    $formatted_date = '';
-}
+            // --- PREPARE DATA ---
+            $meeting_log_id = get_the_ID();
+            
+            // Get the linked skater post objects.
+            $skater_posts = get_field( 'skater' );
+            
+            // Get all other meeting details.
+            $meeting_date   = get_field( 'meeting_date' ) ?: '—';
+            $meeting_types  = get_field( 'meeting_type' );
+            $meeting_type   = $meeting_types ? implode( ', ', $meeting_types ) : '—';
+            $participants   = get_field( 'participants' ) ?: '—';
+            $summary_notes  = get_field( 'summary__notes' );
 
-$meeting_type = get_field('meeting_type');
-if (is_array($meeting_type)) {
-    $meeting_type = implode(', ', $meeting_type);
-}
+            // Determine the primary skater for the "Back" button link.
+            $primary_skater_post = ( ! empty( $skater_posts ) && is_array( $skater_posts ) ) ? $skater_posts[0] : null;
 
-$participants = get_field('participants');
-$summary = get_field('summary_notes');
+            ?>
 
-echo '<div class="wrap coach-dashboard">';
-echo '<h1>' . esc_html(get_the_title()) . '</h1>';
+            <!-- RENDER VIEW -->
+            <main class="w-full">
+                
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h1>Meeting Log: <?php echo esc_html( $meeting_date ); ?></h1>
+                    <div class="actions" style="display: flex; gap: 1rem;">
+                        <a href="<?php echo esc_url( site_url( '/edit-meeting-log/' . $meeting_log_id . '/' ) ); ?>" class="button button-primary">Update Log</a>
+                        <?php if ( $primary_skater_post ) : ?>
+                            <a href="<?php echo esc_url( get_permalink( $primary_skater_post->ID ) ); ?>" class="button">&larr; Back to Skater</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
 
-echo '<div class="dashboard-box">';
+                <!-- Meeting Details Card -->
+                <div class="dashboard-box">
+                    <div style="display: grid; grid-template-columns: max-content 1fr; gap: 1rem 2.5rem;">
+                        <strong>Skater(s):</strong>
+                        <div>
+                            <?php
+                            if ( ! empty( $skater_posts ) ) {
+                                $skater_links = array();
+                                foreach ( $skater_posts as $skater_post ) {
+                                    $skater_links[] = '<a href="' . esc_url( get_permalink( $skater_post->ID ) ) . '">' . esc_html( $skater_post->post_title ) . '</a>';
+                                }
+                                echo implode( ', ', $skater_links );
+                            } else {
+                                echo '—';
+                            }
+                            ?>
+                        </div>
 
-echo '<p><strong>Date:</strong> ' . esc_html($formatted_date) . '</p>';
-echo '<p><strong>Meeting Type:</strong> ' . esc_html($meeting_type) . '</p>';
+                        <strong>Meeting Type:</strong>
+                        <div><?php echo esc_html( $meeting_type ); ?></div>
 
-if ($skaters && is_array($skaters)) {
-    echo '<p><strong>Skater(s):</strong> ';
-    $links = [];
-    foreach ($skaters as $skater) {
-        $links[] = '<a href="' . esc_url(site_url('/skater/' . $skater->post_name)) . '">' . esc_html(get_the_title($skater)) . '</a>';
-    }
-    echo implode(', ', $links);
-    echo '</p>';
-}
+                        <strong>Participants:</strong>
+                        <div><?php echo esc_html( $participants ); ?></div>
+                    </div>
+                </div>
 
-if (!empty($participants)) {
-    echo '<p><strong>Participants:</strong> ' . esc_html($participants) . '</p>';
-}
+                <!-- Summary / Notes Section -->
+                <?php if ( $summary_notes ) : ?>
+                    <div class="section-header">
+                        <h2 class="section-title">Summary / Notes</h2>
+                    </div>
+                    <div class="dashboard-box">
+                        <?php echo wp_kses_post( $summary_notes ); ?>
+                    </div>
+                <?php endif; ?>
 
-if (!empty($summary)) {
-    echo '<h3>Summary / Notes</h3>';
-    echo '<div class="dashboard-notes">' . wpautop(esc_html($summary)) . '</div>';
-}
+            </main>
 
-echo '</div>';
-echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">Back to Dashboard</a></p>';
-echo '</div>';
+            <?php
+        endwhile;
+    else :
+        echo '<p>Meeting log not found.</p>';
+    endif;
+    ?>
+</div>
 
-get_footer();
+<?php
+// Load the plugin's custom footer.
+include plugin_dir_path( __FILE__ ) . '../partials/footer.php';
+?>

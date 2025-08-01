@@ -1,110 +1,113 @@
 <?php
 /**
- * Template: View Goal
+ * The template for displaying a single Goal.
+ *
+ * This template provides a detailed view of a skater's goal, including
+ * its status, description, and other relevant details.
+ *
+ * @package Coach_Operating_System
+ * @since 1.0.0
  */
 
-wp_enqueue_script('jquery');
-acf_form_head();
-get_header();
+// Load the dashboard-specific header.
+include plugin_dir_path( __FILE__ ) . '../partials/header-dashboard.php';
 
-echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
-echo '<div class="wrap coach-dashboard">';
-
-if (!have_posts()) {
-    echo '<p>Goal not found.</p>';
-} else {
-    while (have_posts()) : the_post();
-
-        // Fields
-        $title         = get_the_title() ?: '[Untitled Goal]';
-        $type          = get_field('goal_type') ?: '—';
-        $timeframe     = get_field('goal_timeframe') ?: '—';
-
-        $status_raw    = get_field('current_status');
-        $status        = is_array($status_raw) ? implode(', ', $status_raw) : ($status_raw ?: '—');
-
-        $target_raw    = get_field('target_date');
-        $target        = '—';
-        if ($target_raw) {
-            $dt = DateTime::createFromFormat('d/m/Y', $target_raw);
-            if ($dt) {
-                $target = date_i18n('F j, Y', $dt->getTimestamp()); // Localized output
-            }
-        }
-
-        $skater_raw    = get_field('skater');
-        $skater        = is_array($skater_raw) ? ($skater_raw[0] ?? null) : $skater_raw;
-
-        $description   = get_field('smart_description');
-        $progress      = get_field('progress_notes');
-
-        // Title with Skater prefix
-        $skater_display = '';
-        if ($skater && get_post_type($skater) === 'skater') {
-            $skater_id    = is_object($skater) ? $skater->ID : $skater;
-            $skater_name  = get_the_title($skater_id);
-            $skater_slug  = get_post_field('post_name', $skater_id);
-            $skater_display = $skater_name . ': ';
-        }
-
-        echo '<h1>' . esc_html($skater_display . $title) . '</h1>';
-
-        // Summary fields
-        echo '<ul>';
-        echo '<li><strong>Goal Type:</strong> ' . esc_html($type) . '</li>';
-        echo '<li><strong>Timeframe:</strong> ' . esc_html($timeframe) . '</li>';
-        echo '<li><strong>Status:</strong> ' . esc_html($status) . '</li>';
-        echo '<li><strong>Target Date:</strong> ' . esc_html($target) . '</li>';
-        echo '</ul>';
-
-        // Description and notes
-        if ($description) {
-            echo '<h2>SMART Description</h2>';
-            echo '<div>' . wpautop(wp_kses_post($description)) . '</div>';
-        }
-
-        if ($progress) {
-            echo '<h2>Progress Notes</h2>';
-            echo '<div>' . wpautop(wp_kses_post($progress)) . '</div>';
-        }
-
-        $rationale = get_field('rationale');
-        $criteria = get_field('achievement_criteria');
-        $tools = get_field('measurement_tools');
-
-        if ($rationale) {
-            echo '<h2>Rationale</h2>';
-            echo '<div>' . wpautop(esc_html($rationale)) . '</div>';
-        }
-
-        if ($criteria) {
-            echo '<h2>Achievement Criteria</h2>';
-            echo '<div>' . wpautop(wp_kses_post($criteria)) . '</div>';
-        }
-
-        if ($tools) {
-            echo '<h2>Measurement Tools</h2>';
-            echo '<div>' . wpautop(esc_html($tools)) . '</div>';
-        }
-
-        if (current_user_can('edit_post', get_the_ID())) {
-            $edit_url = site_url('/edit-goal?goal_id=' . get_the_ID());
-            echo '<p><a class="button" href="' . esc_url($edit_url) . '">Update Goal</a></p>';
-        }   
-
-
-        echo '<div class="button-row">';
-        if ($skater && get_post_type($skater) === 'skater') {
-            $skater_id = is_object($skater) ? $skater->ID : $skater;
-            $skater_slug = get_post_field('post_name', $skater_id);
-            echo '<a class="button" href="' . esc_url(site_url('/skater/' . $skater_slug)) . '">&larr; Back to Skater</a> ';
-        }
-        echo '<a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">&larr; Back to Dashboard</a>';
-        echo '</div>';
-        
-
-    endwhile;
+// Redirect user if they are not logged in.
+if ( ! is_user_logged_in() ) {
+    auth_redirect();
 }
 
-echo '</div>';
-get_footer();
+?>
+
+<div class="wrap coach-dashboard">
+    <?php
+    // Start the WordPress loop.
+    if ( have_posts() ) :
+        while ( have_posts() ) :
+            the_post();
+
+            // --- PREPARE DATA ---
+            $goal_id      = get_the_ID();
+            
+            // Get the linked skater post object.
+            $skater_posts = get_field( 'skater' );
+            $skater_post  = ( ! empty( $skater_posts ) && is_array( $skater_posts ) ) ? $skater_posts[0] : null;
+
+            // Get all other goal details.
+            $goal_type        = get_field( 'goal_type' ) ?: '—';
+            $goal_timeframe   = get_field( 'goal_timeframe' ) ? get_field_object('goal_timeframe')['choices'][get_field('goal_timeframe')] : '—';
+            $current_status   = get_field( 'current_status' ) ?: '—';
+            $target_date      = get_field( 'target_date' ) ?: '—';
+            $smart_description = get_field( 'smart_description' );
+            $progress_notes   = get_field( 'progress_notes' );
+            
+            ?>
+
+            <!-- RENDER VIEW -->
+            <main class="w-full">
+                
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h1><?php the_title(); ?></h1>
+                    <div class="actions" style="display: flex; gap: 1rem;">
+                        <a href="<?php echo esc_url( site_url( '/edit-goal/' . $goal_id . '/' ) ); ?>" class="button button-primary">Update Goal</a>
+                        <?php if ( $skater_post ) : ?>
+                            <a href="<?php echo esc_url( get_permalink( $skater_post->ID ) ); ?>" class="button">&larr; Back to Skater</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Goal Details Card -->
+                <div class="dashboard-box">
+                    <div style="display: grid; grid-template-columns: repeat(2, max-content 1fr); gap: 1rem 2.5rem;">
+                        <strong>Skater:</strong>
+                        <div><?php if ( $skater_post ) : ?><a href="<?php echo esc_url( get_permalink( $skater_post->ID ) ); ?>"><?php echo esc_html( $skater_post->post_title ); ?></a><?php else: ?>—<?php endif; ?></div>
+
+                        <strong>Status:</strong>
+                        <div style="font-weight: 600;"><?php echo esc_html( $current_status ); ?></div>
+
+                        <strong>Type:</strong>
+                        <div><?php echo esc_html( $goal_type ); ?></div>
+
+                        <strong>Target Date:</strong>
+                        <div><?php echo esc_html( $target_date ); ?></div>
+                        
+                        <strong>Timeframe:</strong>
+                        <div><?php echo esc_html( $goal_timeframe ); ?></div>
+                    </div>
+                </div>
+
+                <!-- SMART Description Section -->
+                <?php if ( $smart_description ) : ?>
+                    <div class="section-header">
+                        <h2 class="section-title">SMART Description</h2>
+                    </div>
+                    <div class="dashboard-box">
+                        <?php echo wp_kses_post( $smart_description ); ?>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Progress Notes Section -->
+                <?php if ( $progress_notes ) : ?>
+                    <div class="section-header">
+                        <h2 class="section-title">Progress Notes</h2>
+                    </div>
+                    <div class="dashboard-box">
+                        <?php echo wp_kses_post( $progress_notes ); ?>
+                    </div>
+                <?php endif; ?>
+
+            </main>
+
+            <?php
+        endwhile;
+    else :
+        echo '<p>Goal not found.</p>';
+    endif;
+    ?>
+</div>
+
+<?php
+// Load the plugin's custom footer.
+include plugin_dir_path( __FILE__ ) . '../partials/footer.php';
+?>

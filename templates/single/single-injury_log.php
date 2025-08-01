@@ -1,67 +1,112 @@
 <?php
 /**
- * Single Injury Log View Template
+ * The template for displaying a single Injury Log entry.
+ *
+ * This template provides a detailed view of a skater's injury, including
+ * its status, description, and recovery details.
+ *
+ * @package Coach_Operating_System
+ * @since 1.0.0
  */
 
-if (!is_user_logged_in()) {
+// Load the dashboard-specific header.
+include plugin_dir_path( __FILE__ ) . '../partials/header-dashboard.php';
+
+// Redirect user if they are not logged in.
+if ( ! is_user_logged_in() ) {
     auth_redirect();
 }
 
-get_header();
+?>
 
-// Load dashboard styles
-echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
+<div class="wrap coach-dashboard">
+    <?php
+    // Start the WordPress loop.
+    if ( have_posts() ) :
+        while ( have_posts() ) :
+            the_post();
 
-echo '<div class="wrap coach-dashboard">';
+            // --- PREPARE DATA ---
+            $injury_log_id = get_the_ID();
+            
+            // Get the linked skater post object.
+            $skater_posts = get_field( 'injured_skater' );
+            $skater_post  = ( ! empty( $skater_posts ) && is_array( $skater_posts ) ) ? $skater_posts[0] : null;
 
-// Fetch injury log post
-$injury_id = get_the_ID();
-$skater_raw = get_field('injured_skater', $injury_id);
-$skater = is_array($skater_raw) ? ($skater_raw[0] ?? null) : $skater_raw;
+            // Get all other injury details.
+            $injury_type        = get_field( 'injury_type' ) ?: '—';
+            $body_area_array    = get_field( 'body_area' );
+            $body_area          = $body_area_array ? implode( ', ', $body_area_array ) : '—';
+            $date_of_onset      = get_field( 'date_of_onset' ) ?: '—';
+            $return_date        = get_field( 'return_to_sport_date' ) ?: '—';
+            $severity_field     = get_field_object( 'severity' );
+            $severity_value     = get_field( 'severity' );
+            $severity           = $severity_value ? $severity_field['choices'][ $severity_value ] : '—';
+            $status_field       = get_field_object( 'recovery_status' );
+            $status_value       = get_field( 'recovery_status' );
+            $recovery_status    = $status_value ? $status_field['choices'][ $status_value ] : '—';
+            $recovery_notes     = get_field( 'recovery_notes' );
+            
+            ?>
 
-// Links
-$skater_slug = $skater ? $skater->post_name : null;
-$back_link = $skater_slug ? site_url('/skater/' . $skater_slug . '/') : site_url('/coach-dashboard');
-$edit_link = site_url('/edit-injury-log/' . $injury_id);
+            <!-- RENDER VIEW -->
+            <main class="w-full">
+                
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h1>Injury Log: <?php echo esc_html( $injury_type ); ?></h1>
+                    <div class="actions" style="display: flex; gap: 1rem;">
+                        <a href="<?php echo esc_url( site_url( '/edit-injury-log/' . $injury_log_id . '/' ) ); ?>" class="button button-primary">Update Log</a>
+                        <?php if ( $skater_post ) : ?>
+                            <a href="<?php echo esc_url( get_permalink( $skater_post->ID ) ); ?>" class="button">&larr; Back to Skater</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
 
-// Header & Navigation
-echo '<p><a class="button" href="' . esc_url($back_link) . '">&larr; Back to ' . ($skater ? esc_html($skater->post_title) : 'Coach Dashboard') . '</a></p>';
-echo '<h1>Injury Log</h1>';
+                <!-- Injury Details Card -->
+                <div class="dashboard-box">
+                    <div style="display: grid; grid-template-columns: repeat(2, max-content 1fr); gap: 1rem 2.5rem;">
+                        <strong>Skater:</strong>
+                        <div><?php if ( $skater_post ) : ?><a href="<?php echo esc_url( get_permalink( $skater_post->ID ) ); ?>"><?php echo esc_html( $skater_post->post_title ); ?></a><?php else: ?>—<?php endif; ?></div>
 
-// Skater and date
-echo '<p><strong>Skater:</strong> ' . ($skater ? esc_html(get_the_title($skater)) : '[Unknown]') . '</p>';
+                        <strong>Recovery Status:</strong>
+                        <div style="font-weight: 600;"><?php echo esc_html( $recovery_status ); ?></div>
 
-$onset_raw = get_field('date_of_onset', $injury_id);
-$onset = DateTime::createFromFormat('d/m/Y', $onset_raw);
-echo '<p><strong>Date of Onset:</strong> ' . ($onset ? esc_html(date_i18n('F j, Y', $onset->getTimestamp())) : '—') . '</p>';
+                        <strong>Body Area:</strong>
+                        <div><?php echo esc_html( $body_area ); ?></div>
 
-// Fields
-$severity = get_field('severity', $injury_id);
-echo '<p><strong>Severity:</strong> ' . esc_html($severity['label'] ?? '—') . '</p>';
+                        <strong>Severity:</strong>
+                        <div><?php echo esc_html( $severity ); ?></div>
+                        
+                        <strong>Date of Onset:</strong>
+                        <div><?php echo esc_html( $date_of_onset ); ?></div>
 
-$areas = get_field('body_area', $injury_id);
-if ($areas && is_array($areas)) {
-    echo '<p><strong>Body Area:</strong> ' . esc_html(implode(', ', $areas)) . '</p>';
-} else {
-    echo '<p><strong>Body Area:</strong> —</p>';
-}
+                        <strong>Expected Return:</strong>
+                        <div><?php echo esc_html( $return_date ); ?></div>
+                    </div>
+                </div>
 
-$type = get_field('injury_type', $injury_id);
-echo '<p><strong>Description:</strong> ' . esc_html($type ?: '—') . '</p>';
+                <!-- Recovery Notes Section -->
+                <?php if ( $recovery_notes ) : ?>
+                    <div class="section-header">
+                        <h2 class="section-title">Recovery Notes</h2>
+                    </div>
+                    <div class="dashboard-box">
+                        <?php echo wp_kses_post( $recovery_notes ); ?>
+                    </div>
+                <?php endif; ?>
 
-$status = get_field('recovery_status', $injury_id);
-echo '<p><strong>Recovery Status:</strong> ' . esc_html($status['label'] ?? '—') . '</p>';
+            </main>
 
+            <?php
+        endwhile;
+    else :
+        echo '<p>Injury log not found.</p>';
+    endif;
+    ?>
+</div>
 
-$notes = get_field('recovery_notes', $injury_id);
-if ($notes) {
-    echo '<h2>Recovery Notes</h2>';
-    echo wp_kses_post(wpautop($notes));
-}
-$is_skater = in_array('skater', (array) $current_user->roles);
-if (!$is_skater){
-    echo '<p><a class="button" href="' . esc_url($edit_link) . '">Update Injury Log</a></p>';
-}
-echo '</div>';
-
-get_footer();
+<?php
+// Load the plugin's custom footer.
+include plugin_dir_path( __FILE__ ) . '../partials/footer.php';
+?>

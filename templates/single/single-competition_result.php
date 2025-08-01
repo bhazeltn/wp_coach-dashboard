@@ -1,139 +1,182 @@
 <?php
 /**
- * Template: View a Competition Result
+ * The template for displaying a single competition result.
+ *
+ * This template provides a detailed breakdown of a skater's scores,
+ * placements, and any associated media for a single competition.
+ *
+ * @package Coach_Operating_System
+ * @since 1.0.0
  */
 
-get_header();
-echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
+// Load the dashboard-specific header.
+include plugin_dir_path( __FILE__ ) . '../partials/header-dashboard.php';
 
-if (!have_posts()) {
-    echo '<p>Result not found.</p>';
-    get_footer();
-    return;
+// Redirect user if they are not logged in.
+if ( ! is_user_logged_in() ) {
+    auth_redirect();
 }
 
-the_post();
-$result_id = get_the_ID();
+?>
 
-// Linked skater and competition
-$skater = get_field('skater', $result_id);
-$comp   = get_field('linked_competition', $result_id);
-$skater_name = is_array($skater) ? get_the_title($skater[0]) : ($skater ? get_the_title($skater) : '—');
-$comp_name   = is_array($comp) ? get_the_title($comp[0]) : ($comp ? get_the_title($comp) : '—');
+<div class="wrap coach-dashboard">
+    <?php
+    // Start the WordPress loop.
+    if ( have_posts() ) :
+        while ( have_posts() ) :
+            the_post();
 
-// Score groups
-$tes_group     = get_field('scores', $result_id);
-$pcs_group     = get_field('fs_scores', $result_id);
-$ded_group     = get_field('sp_deduction_bonus', $result_id);
-$fs_ded_group  = get_field('fs_deduction_bonus', $result_id);
-$total_group   = get_field('sp_score_place', $result_id);
-$fs_total_group= get_field('fs_score', $result_id);
-$comp_score    = get_field('comp_score', $result_id);
-$detail_sheets = get_field('detail_sheets', $result_id);
+            // --- PREPARE DATA ---
+            $result_id = get_the_ID();
 
-// Segment definitions
-$segments = [
-    'short' => [
-        'label' => 'Short',
-        'tes'   => $tes_group['tes_sp'] ?? null,
-        'pcs'   => $tes_group['pcs_sp'] ?? null,
-        'ded'   => $ded_group['short_program_deductions'] ?? null,
-        'bonus' => $ded_group['short_program_bonus'] ?? null,
-        'total' => $total_group['short_program_score'] ?? null,
-    ],
-    'freeskate' => [
-        'label' => 'Free Skate',
-        'tes'   => $pcs_group['tes_fs'] ?? null,
-        'pcs'   => $pcs_group['pcs_fp'] ?? null,
-        'ded'   => $fs_ded_group['free_program_deductions'] ?? null,
-        'bonus' => $fs_ded_group['free_program_bonus'] ?? null,
-        'total' => $fs_total_group['free_program_score'] ?? null,
-    ],
-];
+            // Get linked skater and competition post objects.
+            $skater_posts = get_field( 'skater' );
+            $skater_post = ( ! empty( $skater_posts ) && is_array( $skater_posts ) ) ? $skater_posts[0] : null;
 
-echo '<div class="wrap coach-dashboard">';
+            $competition_posts = get_field( 'linked_competition' );
+            $competition_post = ( ! empty( $competition_posts ) && is_array( $competition_posts ) ) ? $competition_posts[0] : null;
 
-// Navigation
-$skater_obj = is_array($skater) ? $skater[0] ?? null : $skater;
-if ($skater_obj && is_object($skater_obj)) {
-    $skater_slug = $skater_obj->post_name;
-    echo '<p>';
-    echo '<a class="button" href="' . esc_url(site_url('/skater/' . $skater_slug)) . '">← Back to Skater</a> ';
-    echo '<a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">← Back to Dashboard</a>';
-    echo '</p>';
-} else {
-    echo '<p><a class="button" href="' . esc_url(site_url('/coach-dashboard')) . '">← Back to Dashboard</a></p>';
-}
+            // Get basic result details.
+            $level      = get_field( 'level' ) ?: '—';
+            $discipline = get_field( 'discipline' ) ?: '—';
+            $notes      = get_field( 'notes' );
+            
+            // Get score and placement data from the group field.
+            $comp_score  = get_field( 'comp_score' );
+            $placement   = ! empty( $comp_score['placement'] ) ? $comp_score['placement'] : '—';
+            $total_score = isset( $comp_score['total_competition_score'] ) ? number_format( (float) $comp_score['total_competition_score'], 2 ) : '—';
 
-echo '<h1>Competition Result</h1>';
+            // Get segment scores
+            $sp_scores = get_field('sp_score_place');
+            $fs_scores = get_field('fs_score');
 
-echo '<ul>';
-echo '<li><strong>Skater:</strong> ' . esc_html($skater_name) . '</li>';
-echo '<li><strong>Competition:</strong> ' . esc_html($comp_name) . '</li>';
-echo '<li><strong>Level:</strong> ' . esc_html(get_field('level', $result_id) ?: '—') . '</li>';
-echo '<li><strong>Discipline:</strong> ' . esc_html(get_field('discipline', $result_id) ?: '—') . '</li>';
+            // Get file uploads and video links.
+            $detail_sheets = get_field( 'detail_sheets' );
+            $video_links   = get_field( 'video_link' );
 
-$placement = $comp_score['placement'] ?? null;
-$placement_display = '—';
-if ($placement) {
-    $medal = '';
-    if ((int)$placement === 1) $medal = ' 🥇';
-    elseif ((int)$placement === 2) $medal = ' 🥈';
-    elseif ((int)$placement === 3) $medal = ' 🥉';
-    $placement_display = $placement . $medal;
-}
-echo '<li><strong>Placement:</strong> ' . esc_html($placement_display) . '</li>';
-echo '</ul>';
+            ?>
 
-// Scores table
-echo '<h2>Scores</h2>';
-echo '<table class="widefat fixed striped">';
-echo '<thead><tr><th>Segment</th><th>TES</th><th>PCS</th><th>Deductions</th><th>Bonus</th><th>Total</th></tr></thead><tbody>';
+            <!-- RENDER VIEW -->
+            <main class="w-full">
+                
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h1>Competition Result</h1>
+                    <div class="actions" style="display: flex; gap: 1rem;">
+                        <a href="<?php echo esc_url( site_url( '/edit-competition-result/' . $result_id . '/' ) ); ?>" class="button button-primary">Update Result</a>
+                        <?php if ( $skater_post ) : ?>
+                            <a href="<?php echo esc_url( get_permalink( $skater_post->ID ) ); ?>" class="button">&larr; Back to Skater</a>
+                        <?php endif; ?>
+                        <?php if ( $competition_post ) : ?>
+                             <a href="<?php echo esc_url( get_permalink( $competition_post->ID ) ); ?>" class="button">&larr; Back to Competition</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
 
-$has_scores = false;
-foreach ($segments as $seg) {
-    $tes   = floatval($seg['tes'] ?? 0);
-    $pcs   = floatval($seg['pcs'] ?? 0);
-    $ded   = floatval($seg['ded'] ?? 0);
-    $bonus = floatval($seg['bonus'] ?? 0);
-    $total = isset($seg['total']) ? floatval($seg['total']) : ($tes + $pcs - $ded + $bonus);
+                <!-- Result Details Card -->
+                <div class="dashboard-box">
+                    <div style="display: grid; grid-template-columns: repeat(2, max-content 1fr); gap: 1rem 2.5rem;">
+                        <strong>Skater:</strong>
+                        <div><?php if ( $skater_post ) : ?><a href="<?php echo esc_url( get_permalink( $skater_post->ID ) ); ?>"><?php echo esc_html( $skater_post->post_title ); ?></a><?php else: ?>—<?php endif; ?></div>
 
-    if ($tes || $pcs || $ded || $bonus || $total) {
-        $has_scores = true;
-        echo '<tr>';
-        echo '<td>' . esc_html($seg['label']) . '</td>';
-        echo '<td>' . number_format($tes, 2) . '</td>';
-        echo '<td>' . number_format($pcs, 2) . '</td>';
-        echo '<td>' . number_format($ded, 2) . '</td>';
-        echo '<td>' . number_format($bonus, 2) . '</td>';
-        echo '<td>' . number_format($total, 2) . '</td>';
-        echo '</tr>';
-    }
-}
+                        <strong>Level:</strong>
+                        <div><?php echo esc_html( $level ); ?></div>
 
-if (!$has_scores) {
-    echo '<tr><td colspan="6"><em>No segment scores recorded.</em></td></tr>';
-}
-echo '</tbody></table>';
+                        <strong>Competition:</strong>
+                        <div><?php if ( $competition_post ) : ?><a href="<?php echo esc_url( get_permalink( $competition_post->ID ) ); ?>"><?php echo esc_html( $competition_post->post_title ); ?></a><?php else: ?>—<?php endif; ?></div>
 
-// Detail Sheets
-if ($detail_sheets) {
-    echo '<h2>Detail Sheets</h2><ul>';
-    foreach ($detail_sheets as $sheet) {
-        $segment = $sheet['segment'] ?? '—';
-        $file = $sheet['upload'];
-        if ($file) {
-            echo '<li><strong>' . esc_html($segment) . ':</strong> <a href="' . esc_url($file['url']) . '" target="_blank">View Sheet</a></li>';
-        }
-    }
-    echo '</ul>';
-} else {
-    echo '<p><em>No detail sheets uploaded.</em></p>';
-}
-$is_skater = in_array('skater', (array) $current_user->roles);
-if (!$is_skater){
-    echo '<p><a class="button" href="' . esc_url(site_url('/edit-competition-result/' . $result_id . '/')) . '">Update Result</a></p>';
-}
-echo '</div>';
+                        <strong>Discipline:</strong>
+                        <div><?php echo esc_html( $discipline ); ?></div>
 
-get_footer();
+                        <strong>Overall Placement:</strong>
+                        <div><?php echo esc_html( $placement ); ?></div>
+
+                        <strong>Total Score:</strong>
+                        <div><?php echo esc_html( $total_score ); ?></div>
+                    </div>
+                </div>
+
+                <!-- Scores Section -->
+                <div class="section-header">
+                    <h2 class="section-title">Scores</h2>
+                </div>
+                <table class="dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>Segment</th>
+                            <th>Placement</th>
+                            <th>Total Segment Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ( ! empty( $sp_scores['short_program_score'] ) ) : ?>
+                        <tr>
+                            <td>Short Program</td>
+                            <td><?php echo esc_html( $sp_scores['sp_placement'] ?: '—' ); ?></td>
+                            <td><?php echo esc_html( number_format( (float) $sp_scores['short_program_score'], 2 ) ); ?></td>
+                        </tr>
+                        <?php endif; ?>
+                        <?php if ( ! empty( $fs_scores['free_program_score'] ) ) : ?>
+                        <tr>
+                            <td>Free Program</td>
+                            <td><?php echo esc_html( $fs_scores['fs_placement'] ?: '—' ); ?></td>
+                            <td><?php echo esc_html( number_format( (float) $fs_scores['free_program_score'], 2 ) ); ?></td>
+                        </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+
+                <!-- Detail Sheets Section -->
+                <?php if ( $detail_sheets ) : ?>
+                    <div class="section-header">
+                        <h2 class="section-title">Detail Sheets</h2>
+                    </div>
+                    <ul class="profile-list">
+                        <?php foreach ( $detail_sheets as $sheet ) : ?>
+                            <li>
+                                <strong><?php echo esc_html( $sheet['segment'] ); ?>:</strong>
+                                <a href="<?php echo esc_url( $sheet['upload']['url'] ); ?>" target="_blank">Download File</a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+
+                <!-- Video Links Section -->
+                <?php if ( $video_links ) : ?>
+                    <div class="section-header">
+                        <h2 class="section-title">Videos</h2>
+                    </div>
+                    <ul class="profile-list">
+                        <?php foreach ( $video_links as $video ) : ?>
+                            <li>
+                                <strong><?php echo esc_html( $video['segment'] ); ?>:</strong>
+                                <a href="<?php echo esc_url( $video['link'] ); ?>" target="_blank">Watch Video</a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+
+                 <!-- Notes Section -->
+                <?php if ( $notes ) : ?>
+                    <div class="section-header">
+                        <h2 class="section-title">Notes</h2>
+                    </div>
+                    <div class="dashboard-box">
+                        <?php echo wp_kses_post( $notes ); ?>
+                    </div>
+                <?php endif; ?>
+
+            </main>
+
+            <?php
+        endwhile;
+    else :
+        echo '<p>Competition result not found.</p>';
+    endif;
+    ?>
+</div>
+
+<?php
+// Load the plugin's custom footer.
+include plugin_dir_path( __FILE__ ) . '../partials/footer.php';
+?>
