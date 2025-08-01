@@ -1,78 +1,134 @@
 <?php
 /**
- * Template: View Single Yearly Plan (Formatted)
+ * The template for displaying a single Yearly Plan.
+ *
+ * This template provides a detailed view of a skater's yearly training plan,
+ * including macrocycles and peak planning.
+ *
+ * @package Coach_Operating_System
+ * @since 1.0.0
  */
 
-//get_header();
-echo '<link rel="stylesheet" href="/wp-content/plugins/skater-planning-dashboard/css/dashboard-style.css">';
+// Load the dashboard-specific header.
+include plugin_dir_path( __FILE__ ) . '../partials/header-dashboard.php';
 
-if (!is_user_logged_in()) {
+// Redirect user if they are not logged in.
+if ( ! is_user_logged_in() ) {
     auth_redirect();
 }
 
-global $post;
-setup_postdata($post);
+?>
 
-// === Yearly Plan Fields ===
-$season = get_field('season');
-$skaters = get_field('skater');
-$season_dates = get_field('season_dates');
-$goal = get_field('primary_season_goal');
-$macrocycles = get_field('macrocycles');
-$peak = get_field('peak_planning');
-$eval = get_field('evaluation_strategy');
-$notes = get_field('coach_notes');
+<div class="wrap coach-dashboard">
+    <?php
+    // Start the WordPress loop.
+    if ( have_posts() ) :
+        while ( have_posts() ) :
+            the_post();
 
-// === Season Dates ===
-$start_raw = $season_dates['start_date'] ?? '';
-$end_raw = $season_dates['end_date'] ?? '';
-$season_start = $start_raw ? DateTime::createFromFormat('d/m/Y', $start_raw)->format('Ymd') : '';
-$season_end = $end_raw ? DateTime::createFromFormat('d/m/Y', $end_raw)->format('Ymd') : '';
-$start_fmt = $start_raw ? DateTime::createFromFormat('d/m/Y', $start_raw)->format('F j, Y') : '';
-$end_fmt = $end_raw ? DateTime::createFromFormat('d/m/Y', $end_raw)->format('F j, Y') : '';
+            // --- PREPARE DATA ---
+            $yearly_plan_id = get_the_ID();
+            
+            // Get the linked skater post object.
+            $skater_posts = get_field( 'skater' );
+            $skater_post  = ( ! empty( $skater_posts ) && is_array( $skater_posts ) ) ? $skater_posts[0] : null;
 
-// === Skater Setup ===
-$skater = null;
-$skater_name = '';
-$skater_slug = '';
+            // Get all other yearly plan details.
+            $season_dates         = get_field( 'season_dates' );
+            $start_date_raw       = $season_dates['start_date'] ?? '';
+            $start_date           = $start_date_raw ? DateTime::createFromFormat('d/m/Y', $start_date_raw)->format('F j, Y') : '—';
+            $end_date_raw         = $season_dates['end_date'] ?? '';
+            $end_date             = $end_date_raw ? DateTime::createFromFormat('d/m/Y', $end_date_raw)->format('F j, Y') : '—';
+            $primary_goal         = get_field( 'primary_season_goal' );
+            $macrocycles          = get_field( 'macrocycles' );
+            $peak_planning        = get_field( 'peak_planning' );
+            $evaluation_strategy  = get_field( 'evaluation_strategy' );
+            $coach_notes          = get_field( 'coach_notes' );
+            
+            ?>
 
-if ($skaters && is_array($skaters)) {
-    $skater = $skaters[0];
-    if ($skater) {
-        $skater_name = get_the_title($skater);
-        $skater_slug = $skater->post_name;
-    }
-}
+            <!-- RENDER VIEW -->
+            <main class="w-full">
+                
+                <!-- Page Header -->
+                <div class="page-header">
+                    <h1>Yearly Plan: <?php the_title(); ?></h1>
+                    <div class="actions" style="display: flex; gap: 1rem;">
+                        <a href="<?php echo esc_url( site_url( '/edit-yearly-plan/' . $yearly_plan_id . '/' ) ); ?>" class="button button-primary">Update Plan</a>
+                        <?php if ( $skater_post ) : ?>
+                            <a href="<?php echo esc_url( get_permalink( $skater_post->ID ) ); ?>" class="button">&larr; Back to Skater</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
 
-// Heading
-include plugin_dir_path(__FILE__) . '../partials/yearly-plan/header.php';
+                <!-- Season Overview Card -->
+                <div class="dashboard-box">
+                    <h3 class="section-title" style="margin-top:0;">Season Overview</h3>
+                    <div style="display: grid; grid-template-columns: max-content 1fr; gap: 1rem 2.5rem; margin-top: 1.5rem;">
+                        <strong>Skater:</strong>
+                        <div><?php if ( $skater_post ) : ?><a href="<?php echo esc_url( get_permalink( $skater_post->ID ) ); ?>"><?php echo esc_html( $skater_post->post_title ); ?></a><?php else: ?>—<?php endif; ?></div>
 
-// === Primary Goal ===
-include plugin_dir_path(__FILE__) . '../partials/yearly-plan/goal.php';
+                        <strong>Dates:</strong>
+                        <div><?php echo esc_html( $start_date . ' to ' . $end_date ); ?></div>
+                    </div>
+                    <?php if ( $primary_goal ) : ?>
+                        <div class="profile-section">
+                            <strong>Primary Season Goal:</strong>
+                            <p style="margin-top: 0.5rem;"><?php echo esc_html( $primary_goal ); ?></p>
+                        </div>
+                    <?php endif; ?>
+                </div>
 
-// === Macrocycles ===
-include plugin_dir_path(__FILE__) . '../partials/yearly-plan/macrocycles.php';
+                <!-- Peak Planning Section -->
+                <?php if ( $peak_planning ) : ?>
+                    <div class="section-header">
+                        <h2 class="section-title">Peak Planning</h2>
+                    </div>
+                    <div class="dashboard-box">
+                        <ul class="profile-list">
+                            <li><strong>Peak Type:</strong> <?php echo esc_html( $peak_planning['peak_type'] ); ?></li>
+                            <?php if ( $peak_planning['primary_peak_event'] ) : ?>
+                                <li><strong>Primary Peak Event:</strong> <a href="<?php echo esc_url( get_permalink( $peak_planning['primary_peak_event']->ID ) ); ?>"><?php echo esc_html( $peak_planning['primary_peak_event']->post_title ); ?></a></li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
 
-// === Peak Planning ===
-include plugin_dir_path(__FILE__) . '../partials/yearly-plan/peak.php';
+                <!-- Macrocycles Section -->
+                <?php if ( $macrocycles ) : ?>
+                    <div class="section-header">
+                        <h2 class="section-title">Macrocycles</h2>
+                    </div>
+                    <?php foreach ( $macrocycles as $cycle ) : ?>
+                        <details class="macrocycle-toggle">
+                            <summary><?php echo esc_html( $cycle['phase_title'] ?: 'Unnamed Phase' ); ?></summary>
+                            <div class="macrocycle-content">
+                                <ul class="profile-list">
+                                    <li><strong>Dates:</strong> <?php echo esc_html( $cycle['phase_start'] . ' to ' . $cycle['phase_end'] ); ?></li>
+                                    <li><strong>Focus:</strong> <?php echo esc_html( $cycle['phase_focus'] ); ?></li>
+                                    <?php if ( ! empty( $cycle['evaluation_strategy'] ) ) : ?>
+                                        <li><strong>Evaluation Strategy:</strong> <?php echo wp_kses_post( $cycle['evaluation_strategy'] ); ?></li>
+                                    <?php endif; ?>
+                                    <?php if ( ! empty( $cycle['coach_notes'] ) ) : ?>
+                                        <li><strong>Coach Notes:</strong> <?php echo wp_kses_post( $cycle['coach_notes'] ); ?></li>
+                                    <?php endif; ?>
+                                </ul>
+                            </div>
+                        </details>
+                    <?php endforeach; ?>
+                <?php endif; ?>
 
-// === Weekly Plans Preview ===
-include plugin_dir_path(__FILE__) . '../partials/yearly-plan/weekly-plans.php';
+            </main>
 
-// === Competitions ===
-include plugin_dir_path(__FILE__) . '../partials/yearly-plan/competitions.php';
+            <?php
+        endwhile;
+    else :
+        echo '<p>Yearly plan not found.</p>';
+    endif;
+    ?>
+</div>
 
-
-// === Goals Section ===
-include plugin_dir_path(__FILE__) . '../partials/yearly-plan/goals.php';
-
-// === Meetings This Season ===
-include plugin_dir_path(__FILE__) . '../partials/yearly-plan/meetings.php';
-
-// === Injury Log This Season ===
-include plugin_dir_path(__FILE__) . '../partials/yearly-plan/injuries.php';
-
-// === Action Block ===
-include plugin_dir_path(__FILE__) . '../partials/yearly-plan/actions.php';
-
-//get_footer();
+<?php
+// Load the plugin's custom footer.
+include plugin_dir_path( __FILE__ ) . '../partials/footer.php';
+?>
